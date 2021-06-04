@@ -1,5 +1,9 @@
 MALL v2 TEST
 
+## 环境
+python 3.9.5 -m venv venv
+pip install -r requirements.txt
+
 ## 代理配置
 export http_proxy=http://192.168.8.27:8088;
 export curl_ca_bundle="./mitmproxy-ca-cert.pem"; export https_proxy=http://192.168.8.27:8088;
