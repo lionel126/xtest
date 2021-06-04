@@ -5,6 +5,7 @@ import config
 
 get = partial(getattr(requests, 'get'), **{"verify": False})
 post = partial(getattr(requests, 'post'), **{"verify": False})
+put = partial(getattr(requests, 'put'), **{"verify": False})
 delete = partial(getattr(requests, 'delete'), **{"verify": False})
 
 # for req_method in ('get', 'post', 'delete', 'patch', 'put'):
@@ -19,6 +20,7 @@ class Data():
     _CREATE_PRODUCT = DJANGO_BASE + '/{storeCode}/product'
     _DELETE_SKUS = DJANGO_BASE + '/skus'
     _GET_SKUS = DJANGO_BASE + '/skus'
+    _CHANGE_SKU_STATUS = DJANGO_BASE + '/skus/status'
 
     @staticmethod
     def create_product(json=None, storeCode=config.StoreCode):
@@ -32,9 +34,17 @@ class Data():
         return r
 
     @staticmethod
-    def get_skus(size=10, page=0):
-        r = get(Data._GET_SKUS, params={"page": page, "size": size})
+    def get_skus(size=10, page=0, status='on_sale', **kwargs):
+        if status:
+            kwargs['status'] = status
+        r = get(Data._GET_SKUS, params={"page": page, "size": size, **kwargs})
         return r
+
+    @staticmethod
+    def sku_status(jsn):
+        '''修改sku status
+        '''
+        return post(Data._CHANGE_SKU_STATUS, json=jsn)
 
 
 class MallV2():
