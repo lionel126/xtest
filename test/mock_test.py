@@ -2,15 +2,16 @@
 
 '''
 
-from utils import post
+from utils import post, delete, Data
 
 BASE_URL = 'http://192.168.4.200:5000'
 
-# DJANGO_BASE = 'http://192.168.100.110:8000/mock'
+DJANGO_BASE = 'http://t.vmovier.cc'
 
 class Url():
     product_detail = BASE_URL + '/pond5/api/v2/product/detail'
     sku_detail = BASE_URL + '/pond5/api/v2/sku/detail'
+
 
 class TestMock():
     def test_product_detail(self):
@@ -26,5 +27,12 @@ class TestMock():
                 },
             ]
         })
+
+    
+class TestD():
+
+    def test_a(self):
+        delete(Data._DELETE_SKUS, json=['efc69385-f1dd-4955-b8f9-3149412177b9'])
+
 
 

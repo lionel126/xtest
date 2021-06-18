@@ -5,7 +5,7 @@ python 3.9.5 -m venv venv
 pip install -r requirements.txt
 
 ## 代理配置
-export http_proxy=http://192.168.8.27:8088;
+export http_proxy=http://192.168.8.27:30001;
 export curl_ca_bundle="./mitmproxy-ca-cert.pem"; export https_proxy=http://192.168.8.27:8088;
 
 # 打印日志
@@ -14,7 +14,16 @@ pytest --log-cli-level=INFO <test-file.py>
 
 
 # 问题
-购物车：不支持同时选中或取消选中 没法反选？？
+复用太差 结构修改后大量工作量: cart_list.data.skus [] => null
+程序写测试用例 本身bug
+
+很早提测了 需求也在变动 不是说所有改动影响到测试 但是的确有一些
+测什么
+怎么测
+接口测试效果怎么样？ 前端实际接入后遇到了接口设计的问题 
+
+case 怎么写：
+试探
 
 # 
 并发用券/ticket
@@ -22,3 +31,13 @@ pytest --log-cli-level=INFO <test-file.py>
 
 # todo:
 测试用例复用
+不同storeCode ticket/coupon相同
+
+多sku/pku/storeCode 下单
+购物车下单
+
+
+# bug ??
+promotiontag with storeCode
+增加一个sku，优惠反而减少/？？？？？
+~~rangeStoreCode 传"" 返 "0" ?? 怎么全部storeCode匹配？？~~
