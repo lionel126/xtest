@@ -1,3 +1,5 @@
+DEBUG = True
+
 BASE_URL = 'http://192.168.4.200:5004/mall/v2'
 # BASE_URL = 'http://192.168.100.98:5004/mall/v2'
 

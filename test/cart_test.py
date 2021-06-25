@@ -143,7 +143,7 @@ class TestCartAdd():
         assert r.json()['status'] == 1000
 
     
-    def test_invalid_skuid(self):
+    def test_invalid_skuId(self):
         '''
         {"status":404,"message":"sku not found"}
         '''
@@ -298,7 +298,43 @@ class TestCartUpdate():
                     # result['0'].append(expectation[i])
         # log.debug(result)
 
-    
+    def test_update_quantity_more_than_2(self):
+        '''购物车：更新购物车item数量。可用值1/2
+        >2: {"status":5104,"message":"操作失败了，原因：限购，库存检查失败"}
+        '''
+        skus = MallV2.get_cart().json()['data']['skus']
+
+        if not skus:
+            for sku in Data.get_skus().json()['data']:
+                MallV2.add_to_cart(sku['skuId'])
+            skus = MallV2.get_cart().json()['data']['skus']
+
+        # 移除无效商品
+        MallV2.remove_invalid()
+
+        before = [(sku['id'], sku['quantity']) for sku in skus]
+        expectation = [(it[0], random.randint(3, 100))
+                       for it in before]
+        res = []
+        for cart_id, amount in expectation:
+            res.append(MallV2.update_cart_item_quantity(
+                cart_id, amount))
+        r = MallV2.get_cart()
+        after = [(sku['id'], sku['quantity'])
+                 for sku in r.json()['data']['skus']]
+
+        log.info(
+            f'\n{"before":<15}: {before}\n{"expectation":<15}: {expectation}\n{"after":<15}: {after}')
+        for i in range(len(after)):
+            
+            assert after[i] == before[i]
+            
+            assert res[i].json()[
+                'status'] == 5104, f'{expectation[i][0]}'
+            # result['>2'].append(expectation[i])
+                
+
+
     def test_update_cart_1_quantity(self):
         '''
         #todo: 

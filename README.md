@@ -5,9 +5,8 @@ python 3.9.5 -m venv venv
 pip install -r requirements.txt
 
 ## 代理配置
-export http_proxy=http://192.168.8.27:30001;
-export curl_ca_bundle="./mitmproxy-ca-cert.pem"; export https_proxy=http://192.168.8.27:8088;
-
+export http_proxy=http://192.168.8.27:30001; export REQUESTS_CA_BUNDLE="./tmp/rootCA.crt"; export https_proxy=http://192.168.8.27:30001;
+<!-- export curl_ca_bundle="./tmp/mitmproxy-ca-cert.pem"; -->
 # 打印日志
 pytest --log-cli-level=INFO <test-file.py>
 
@@ -36,8 +35,10 @@ case 怎么写：
 多sku/pku/storeCode 下单
 购物车下单
 
+传None/不传/传空值？？ requests封装 None和不传的区别
 
 # bug ??
 promotiontag with storeCode
 增加一个sku，优惠反而减少/？？？？？
 ~~rangeStoreCode 传"" 返 "0" ?? 怎么全部storeCode匹配？？~~
+跨结算商户下单，部分支付。 满减优惠券不应该跨结算商户

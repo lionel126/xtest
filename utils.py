@@ -1,25 +1,34 @@
+import aiohttp
 import requests
-from functools import partial
+# from functools import partial
+from requests.sessions import session
 from config import BASE_URL, USER_ID, STORE1
 import config
 import time
 from uuid import uuid4
+from requests import get, post, put, delete, patch
+import ssl
+import os
+from aiohttp import ClientSession
+import asyncio
 
-DEFAULT_REQ_KWARGS = {"verify": False}
+# DEFAULT_REQ_KWARGS = {"verify": False}
 
-get = partial(getattr(requests, 'get'), **DEFAULT_REQ_KWARGS)
-post = partial(getattr(requests, 'post'), **DEFAULT_REQ_KWARGS)
-put = partial(getattr(requests, 'put'), **DEFAULT_REQ_KWARGS)
-delete = partial(getattr(requests, 'delete'), **DEFAULT_REQ_KWARGS)
-patch = partial(getattr(requests, 'patch'), **DEFAULT_REQ_KWARGS)
-
-# for req_method in ('get', 'post', 'delete', 'patch', 'put'):
-#     globals()[req_method] = partial(getattr(requests, req_method), **{"verify": False})
+# get = partial(getattr(requests, 'get'), **DEFAULT_REQ_KWARGS)
+# post = partial(getattr(requests, 'post'), **DEFAULT_REQ_KWARGS)
+# put = partial(getattr(requests, 'put'), **DEFAULT_REQ_KWARGS)
+# delete = partial(getattr(requests, 'delete'), **DEFAULT_REQ_KWARGS)
+# patch = partial(getattr(requests, 'patch'), **DEFAULT_REQ_KWARGS)
 
 
 DJANGO_BASE = 'http://t.vmovier.cc'
 MANAGER_HEADERS = {"x-user-id": "1", "x-user-token": "eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.a3b6e825e26f5a87bc2e98a9c8126c7254f0f3d3"}
+PAY_ADMIN_BASE = 'https://pay-admin-wkm.vmovier.cc'
 
+sslcontext = ssl.create_default_context(cafile=os.path.join(os.path.dirname(__file__), './tmp/rootCA.crt'))
+
+aiohttp_proxy = dict(proxy="http://192.168.8.27:30001", ssl=sslcontext) if config.DEBUG else {}
+# aiohttp_proxy = {}
 
 class Url():
     # cart
@@ -30,15 +39,19 @@ class Url():
     cart_remove = BASE_URL + '/intranet/cart/remove'
 
     manage_coupon_create = BASE_URL + '/manage/coupon/create'
-    manage_coupon_offer = BASE_URL + '/manage/coupon/receive'
-    manage_coupon_shelf = BASE_URL + '/manage/coupon/shelf'
     manage_coupon_update = BASE_URL + '/manage/coupon/update'
+    manage_coupon_delete =  BASE_URL + '/manage/coupon/delete'
+    manage_coupon_shelf = BASE_URL + '/manage/coupon/shelf'
+    manage_coupon_info = BASE_URL + '/manage/coupon/info'
+    manage_coupon_list = BASE_URL + '/manage/coupon/list'
+    manage_coupon_offer = BASE_URL + '/manage/coupon/receive'
+    manage_coupon_list = BASE_URL + '/manage/coupon/user/list'
+    coupon_info = BASE_URL + '/manage/coupon/info'
     ticket_create = BASE_URL + '/manage/ticket/create'
     ticket_offer = BASE_URL + '/manage/ticket/receive'
 
     coupon_receive = BASE_URL + '/intranet/coupon/receive'
     coupon_list = BASE_URL + '/intranet/coupon/list'
-    # coupon_info = BASE_URL + '/intranet/coupon/{id}/info'
     ticket_list = BASE_URL + '/intranet/userTicket'
     ticket_info = BASE_URL + '/intranet/userTicket/{id}/info'
 
@@ -46,6 +59,8 @@ class Url():
     trade_submit = BASE_URL + '/intranet/trade/submit'
     trade_detail = BASE_URL + '/intranet/trade/detail/{tradeNO}'
     trade_token = BASE_URL + '/intranet/trade/link'
+    trade_cancel = BASE_URL + '/intranet/trade/cancel/{tradeNo}'
+    trade_list = BASE_URL + '/intranet/trade/list'
 
     pay = BASE_URL + '/intranet/trade/pay'
 
@@ -83,10 +98,10 @@ class Data():
         return r
 
     @staticmethod
-    def get_skus(storeCode=STORE1, size=10, page=0, status='on_sale', skus=None, **kwargs):
+    def get_skus(size=10, page=0, status='on_sale', storeCode=STORE1, skus=None, **kwargs):
         '''default: status = on_sale
         商品库暂时没提供商品列表接口
-        多个mock商品库 实际连接同一个mock服务：相同商品 不同storeCode
+        预留storeCode 暂时无用。多个mock商品库 实际连接同一个mock服务：相同商品 不同storeCode
         '''
         if status:
             kwargs['status'] = status
@@ -383,14 +398,52 @@ class MallV2():
         return get(Url.trade_detail.format(tradeNO=tradeNO), params={"userId": userId, "token": token})
 
     @staticmethod
+    def trade_list(userId=USER_ID, pageSize=20, page=1):
+        return get(Url.trade_list, params=dict(userId=USER_ID, page=page, pageSize=pageSize))
+
+    @staticmethod
+    def trade_cancel(tradeNo, userId=USER_ID):
+        return post(Url.trade_cancel.format(tradeNo=tradeNo), params={"userId": userId})
+
+
+    @staticmethod
     def pay(**kwargs):
         return post(Url.pay, json=kwargs)
+
+session_pay_admin = requests.Session()
+class PayAdmin():
+    
+
+    def __init__(self):
+        if self._get_user().status_code == 403:
+            self._login()
+
+
+    def _get_user(self):
+        return session_pay_admin.get(f'{PAY_ADMIN_BASE}/api/current/user')
+    def _login(self):
+        session_pay_admin.post(f'{PAY_ADMIN_BASE}/login', {"email": "chenshengguo@xinpianchang.com", "password": "123456"})
+
+    
+    def fix(self, order_no):
+        '''补单
+        '''
+        session_pay_admin.get(f'{PAY_ADMIN_BASE}/api/trade/fix?order_no={order_no}')
+
+    def refund(self, order_no):
+        '''退款
+        '''
+        session_pay_admin.get(f'{PAY_ADMIN_BASE}/api/trade/refund?order_no={order_no}&amount_refund=1')
+        
+
 
 
 def new_tag():
     return f'tag-{uuid4()}'
 
 def trade_count(storeCodes):
+    '''根据 storeCode list 计算trade单的数量
+    '''
     # 数据库里商户对应的结算账号
     merchant = {
         "mock1": "北京新片场",
@@ -403,3 +456,10 @@ def trade_count(storeCodes):
     for sc in storeCodes:
         s.add(merchant[sc])
     return len(s)
+
+
+async def areq(concurrency_count, req_kwargs):
+    async with ClientSession() as session:
+        task = [session.request(**req_kwargs | aiohttp_proxy) for _ in range(concurrency_count)]
+        res = await asyncio.gather(*task)
+        return res
