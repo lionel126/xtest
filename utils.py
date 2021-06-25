@@ -21,7 +21,7 @@ import asyncio
 # patch = partial(getattr(requests, 'patch'), **DEFAULT_REQ_KWARGS)
 
 
-DJANGO_BASE = 'http://t.vmovier.cc'
+DJANGO_BASE = 'https://t.vmovier.cc'
 MANAGER_HEADERS = {"x-user-id": "1", "x-user-token": "eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.a3b6e825e26f5a87bc2e98a9c8126c7254f0f3d3"}
 PAY_ADMIN_BASE = 'https://pay-admin-wkm.vmovier.cc'
 
