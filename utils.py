@@ -459,6 +459,8 @@ def trade_count(storeCodes):
 
 
 async def areq(concurrency_count, req_kwargs):
+    '''async request
+    '''
     async with ClientSession() as session:
         task = [session.request(**req_kwargs | aiohttp_proxy) for _ in range(concurrency_count)]
         res = await asyncio.gather(*task)

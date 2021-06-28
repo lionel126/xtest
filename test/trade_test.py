@@ -1905,7 +1905,7 @@ class TestTradeSubmit():
         assert {result.status for result in rst} == {200}
         res = [(await result.json())['status'] for result in rst]
         assert res.count(0) == 1
-        # 6501 获取redis锁失败; 
+        # 6501 获取redis锁失败; 6200 优惠不可用导致价格对不上 下单失败
         assert res.count(6200) + res.count(6501) == concurrency_count - 1
 
 class TestPay():
@@ -2181,6 +2181,7 @@ class TestPay():
     @pytest.mark.asyncio
     async def test_async_pay(self):
         '''并发支付：生成第三方支付二维码/
+        目前的产品逻辑 不需要限制；允许多笔支付成功 长款交易；
         '''
         ts = TestTradeSubmit()
         ts.test_multiple_trade()
@@ -2199,8 +2200,8 @@ class TestPay():
             "token": token,
             "appId": channel['appId'],
         }
-        
-        concurrency_count = 10
+        # 10个并发不会导致6500（redis lock）
+        concurrency_count = 30
         
         res = await areq(concurrency_count, {
             "method": "POST",
