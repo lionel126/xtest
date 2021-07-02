@@ -1,4 +1,3 @@
-import aiohttp
 import requests
 # from functools import partial
 from requests.sessions import session
@@ -6,12 +5,14 @@ from config import BASE_URL, USER_ID, STORE1
 import config
 import time
 from uuid import uuid4
-from requests import get, post, put, delete, patch
+from requests import get, post, put, delete, patch, request
 import ssl
 import os
 from aiohttp import ClientSession
 import asyncio
+import logging
 
+log = logging.getLogger(__file__)
 # DEFAULT_REQ_KWARGS = {"verify": False}
 
 # get = partial(getattr(requests, 'get'), **DEFAULT_REQ_KWARGS)
@@ -154,93 +155,218 @@ class MallV2DB():
 
 class MallV2():
 
+    # @staticmethod
+    # def get_cart(userId=USER_ID):
+
+    #     r = get(Url.cart_list, params={"userId": userId})
+    #     # assert r.status_code == 200
+    #     return r
     @staticmethod
-    def get_cart(userId=USER_ID):
+    def get_cart(**kwargs):
+        '''{
+            "method": "get",
+            "url": Url.cart_list,
+            "params": {"userId": USER_ID}
+        }'''
+        return req({
+            "method": "get",
+            "url": Url.cart_list,
+            "params": {"userId": USER_ID}
+        }, locals())
 
-        r = get(Url.cart_list, params={"userId": userId})
-        # assert r.status_code == 200
-        return r
+    # @staticmethod
+    # def add_to_cart(sku, userId=USER_ID, store=config.STORE1, quantity=1):
 
+    #     r = post(Url.cart_add, params={"userId": userId}, json={
+    #         "skuId": sku,
+    #         "quantity": quantity,
+    #         "storeCode": store
+    #     })
+    #     # assert r.status_code == 200
+    #     return r
     @staticmethod
-    def add_to_cart(sku, userId=USER_ID, store=config.STORE1, quantity=1):
+    def add_to_cart(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.cart_add,
+            "params": {"userId": USER_ID},
+            "json": {
+                "skuId": "",
+                "quantity": 1,
+                "storeCode": STORE1
+            }
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.cart_add,
+            "params": {"userId": USER_ID},
+            "json": {
+                "skuId": "",
+                "quantity": 1,
+                "storeCode": STORE1
+            }
+        }, locals())
 
-        r = post(Url.cart_add, params={"userId": userId}, json={
-            "skuId": sku,
-            "quantity": quantity,
-            "storeCode": store
-        })
-        # assert r.status_code == 200
-        return r
+    # @staticmethod
+    # def remove_cart_item(items_to_remove, userId=USER_ID):
 
+    #     r = post(Url.cart_remove, params={"userId": userId}, json={
+    #         'cartItemIds': items_to_remove,
+    #         # 'isRemoveAllInvalid': True
+    #     })
+    #     # assert r.status_code == 200
+    #     return r
+
+    # @staticmethod
+    # def remove_invalid(userId=USER_ID):
+    #     '''
+    #     '''
+
+    #     r = post(Url.cart_remove, params={"userId": userId}, json={
+    #         # 'cartItemIds': items_to_remove,
+    #         'isRemoveAllInvalid': True
+    #     })
+    #     # assert r.status_code == 200
+    #     return r
     @staticmethod
-    def remove_cart_item(items_to_remove, userId=USER_ID):
+    def remove_cart_item(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.cart_remove, 
+            "params":{"userId": userId}, 
+            "json": {
+                'cartItemIds': [],
+                'isRemoveAllInvalid': False
+            }
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.cart_remove, 
+            "params":{"userId": USER_ID}, 
+            "json": {
+                'cartItemIds': [],
+                'isRemoveAllInvalid': False
+            }
+        }, locals())
+        
+    # @staticmethod
+    # def update_cart_item_quantity(cartItemId, quantity, userId=USER_ID):
 
-        r = post(Url.cart_remove, params={"userId": userId}, json={
-            'cartItemIds': items_to_remove,
-            # 'isRemoveAllInvalid': True
-        })
-        # assert r.status_code == 200
-        return r
-
+    #     return post(Url.cart_update_quantity, params={"userId": userId}, json={
+    #         "cartItemId": cartItemId,
+    #         "quantity": quantity
+    #     })
     @staticmethod
-    def remove_invalid(userId=USER_ID):
-        '''
-        '''
+    def update_cart_item_quantity(**kwargs):
+        '''{
+            "method": "post",
+            "url":Url.cart_update_quantity, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "cartItemId": 0,
+                "quantity": 1
+            }
+        }'''
+        return req({
+            "method": "post",
+            "url":Url.cart_update_quantity, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "cartItemId": 0,
+                "quantity": 1
+            }
+        }, locals())
 
-        r = post(Url.cart_remove, params={"userId": userId}, json={
-            # 'cartItemIds': items_to_remove,
-            'isRemoveAllInvalid': True
-        })
-        # assert r.status_code == 200
-        return r
+    # @staticmethod
+    # def select_cart_item(cartItemIds, selected=True, userId=USER_ID):
 
+    #     return post(Url.cart_select, params={"userId": userId}, json={
+    #         "cartItemIds": cartItemIds,
+    #         "selected": selected,
+    #     })
     @staticmethod
-    def update_cart_item_quantity(cartItemId, quantity, userId=USER_ID):
+    def select_cart_item(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.cart_select, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "cartItemIds": [],
+                "selected": True,
+            }
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.cart_select, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "cartItemIds": [],
+                "selected": True,
+            }
+        }, locals())
 
-        return post(Url.cart_update_quantity, params={"userId": userId}, json={
-            "cartItemId": cartItemId,
-            "quantity": quantity
-        })
+    # @staticmethod
+    # def create_coupon(coupon={}, mode='update'):
+    #     '''
+    #     Parameters:
+    #     -----------
+    #     couponType:str
+    #         money_off | percent_off
+    #     couponValue:int
+    #     rangeType:
+    #         0 SPU;1: SKU;2:promotion_tag
+    #     rangeStoreCode:
+    #         商品库code 当range_type 为spu sku时需要传，promotion_tag 可不传
+    #     rangeValue:
 
+    #     effectiveAt:int    expiredAt:int
+    #         默认当时生效 有效期一天
+    #     quantity:int
+    #         default: -1 不限制
+    #     maxReceived:int
+    #         default: -1 不限制
+    #     sentType	int	O	优惠券发放形式 0:可发放可领取;1:仅发放;2:仅领取
+    #     receiveType
+    #     userTag
+    #     returnable
+    #     rangeType
+    #     rangeStoreCode
+    #     rangeValue
+    #     '''
+    #     if mode == 'update':
+
+    #         coupon = {
+    #             "name": "coupon_from_test",
+    #             "brief": "test brief",
+    #             "couponType": "money_off",
+    #             "couponValue": 5,
+    #             "effectiveAt": int((time.time() - 3600) * 1000),
+    #             "expiredAt": int((time.time() + 3600 * 24) * 1000),
+    #             "duration": 0,
+    #             "quantity": -1,
+    #             "maxReceived": -1,
+    #             "unusedLimit": -1,
+    #             "thresholdPrice": 100,
+    #             "sentType": 0,
+    #             "receiveType": 0,
+    #             "userTag": "tag1,tag2",
+    #             "returnable": False,
+    #             "rangeType": 1,
+    #             "rangeStoreCode": config.STORE1,
+    #             "rangeValue": "value",
+    #         } | coupon
+    #         # 对此接口 null  等同于 没有？ 先删了确保“不传rangeStoreCode”
+    #         # if coupon['rangeStoreCode'] is None:
+    #         #     del coupon['rangeStoreCode']
+    #         # coupon = {k: v for k, v in coupon.items() if v is not None}
+    #     return post(Url.manage_coupon_create, headers=MANAGER_HEADERS, json=coupon)
     @staticmethod
-    def select_cart_item(cartItemIds, selected=True, userId=USER_ID):
-
-        return post(Url.cart_select, params={"userId": userId}, json={
-            "cartItemIds": cartItemIds,
-            "selected": selected,
-        })
-
-    @staticmethod
-    def create_coupon(coupon={}, mode='update'):
-        '''
-        Parameters:
-        -----------
-        couponType:str
-            money_off | percent_off
-        couponValue:int
-        rangeType:
-            0 SPU;1: SKU;2:promotion_tag
-        rangeStoreCode:
-            商品库code 当range_type 为spu sku时需要传，promotion_tag 可不传
-        rangeValue:
-
-        effectiveAt:int    expiredAt:int
-            默认当时生效 有效期一天
-        quantity:int
-            default: -1 不限制
-        maxReceived:int
-            default: -1 不限制
-        sentType	int	O	优惠券发放形式 0:可发放可领取;1:仅发放;2:仅领取
-        receiveType
-        userTag
-        returnable
-        rangeType
-        rangeStoreCode
-        rangeValue
-        '''
-        if mode == 'update':
-
-            coupon = {
+    def create_coupon(**kwargs):
+        '''{
+            "method": "post",
+            "headers": MANAGER_HEADERS,
+            "url": Url.manage_coupon_create,
+            "json":{
                 "name": "coupon_from_test",
                 "brief": "test brief",
                 "couponType": "money_off",
@@ -259,156 +385,525 @@ class MallV2():
                 "rangeType": 1,
                 "rangeStoreCode": config.STORE1,
                 "rangeValue": "value",
-            } | coupon
-            # 对此接口 null  等同于 没有？ 先删了确保“不传rangeStoreCode”
-            # if coupon['rangeStoreCode'] is None:
-            #     del coupon['rangeStoreCode']
-            # coupon = {k: v for k, v in coupon.items() if v is not None}
-        return post(Url.manage_coupon_create, headers=MANAGER_HEADERS, json=coupon)
+            }
+        }'''
+        return req({
+            "method": "post",
+            "headers": MANAGER_HEADERS,
+            "url": Url.manage_coupon_create,
+            "json":{
+                "name": "coupon_from_test",
+                "brief": "test brief",
+                "couponType": "money_off",
+                "couponValue": 5,
+                "effectiveAt": int((time.time() - 3600) * 1000),
+                "expiredAt": int((time.time() + 3600 * 24) * 1000),
+                "duration": 0,
+                "quantity": -1,
+                "maxReceived": -1,
+                "unusedLimit": -1,
+                "thresholdPrice": 100,
+                "sentType": 0,
+                "receiveType": 0,
+                "userTag": "tag1,tag2",
+                "returnable": False,
+                "rangeType": 1,
+                "rangeStoreCode": config.STORE1,
+                "rangeValue": "value",
+            }
+        }, locals())
 
+    # @staticmethod
+    # def coupon_shelf(coupon_code, action):
+    #     '''
+    #     '''
+    #     r = post(Url.manage_coupon_shelf, json={
+    #         "code": coupon_code,
+    #         "action": action
+    #     }, headers=MANAGER_HEADERS)
+    #     return r
     @staticmethod
-    def coupon_shelf(coupon_code, action):
-        '''
-        '''
-        r = post(Url.manage_coupon_shelf, json={
-            "code": coupon_code,
-            "action": action
-        }, headers=MANAGER_HEADERS)
-        return r
-
+    def coupon_shelf(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.manage_coupon_shelf, 
+            "json":{
+                "code": "",
+                "action": "on"
+            }, 
+            "headers": MANAGER_HEADERS
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.manage_coupon_shelf, 
+            "json":{
+                "code": "",
+                "action": "on"
+            }, 
+            "headers": MANAGER_HEADERS
+        }, locals())
+        
+    # @staticmethod
+    # def offer_coupon(code, receives=[{"userId": USER_ID, "count": 1}], source="test"):
+    #     return post(Url.manage_coupon_offer,
+    #                 headers=MANAGER_HEADERS,
+    #                 json={
+    #                     "source": source,
+    #                     "code": code,
+    #                     "receives": receives
+    #                 })
     @staticmethod
-    def offer_coupon(code, receives=[{"userId": USER_ID, "count": 1}], source="test"):
-        return post(Url.manage_coupon_offer,
-                    headers=MANAGER_HEADERS,
-                    json={
-                        "source": source,
-                        "code": code,
-                        "receives": receives
-                    })
+    def offer_coupon(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.manage_coupon_offer,
+            "headers": MANAGER_HEADERS,
+            "json": {
+                "source": "test",
+                "code": "coupon-code",
+                "receives": [
+                    {"userId": USER_ID, "count": 1}
+                ]
+            }
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.manage_coupon_offer,
+            "headers": MANAGER_HEADERS,
+            "json": {
+                "source": "test",
+                "code": "coupon-code",
+                "receives": [
+                    {"userId": USER_ID, "count": 1}
+                ]
+            }
+        }, locals())
 
+    # @staticmethod
+    # def update_coupon(**kwargs):
+    #     # kwargs.update({"code": code})
+    #     r = post(Url.manage_coupon_update,
+    #              headers=MANAGER_HEADERS,
+    #              json=kwargs
+    #              )
+    #     return r
     @staticmethod
     def update_coupon(**kwargs):
-        # kwargs.update({"code": code})
-        r = post(Url.manage_coupon_update,
-                 headers=MANAGER_HEADERS,
-                 json=kwargs
-                 )
-        return r
+        '''{
+            "method": "post",
+            "url": Url.manage_coupon_update,
+            "headers": MANAGER_HEADERS,
+            "json": {
+                "id": 0,
+                "name": "coupon_from_test",
+                "brief": "test brief",
+                "couponType": "money_off",
+                "couponValue": 5,
+                "effectiveAt": int((time.time() - 3600) * 1000),
+                "expiredAt": int((time.time() + 3600 * 24) * 1000),
+                "duration": 0,
+                "quantity": -1,
+                "maxReceived": -1,
+                "unusedLimit": -1,
+                "thresholdPrice": 100,
+                "sentType": 0,
+                "receiveType": 0,
+                "userTag": "tag1,tag2",
+                "returnable": False,
+                "rangeType": 1,
+                "rangeStoreCode": config.STORE1,
+                "rangeValue": "value",
+            }
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.manage_coupon_update,
+            "headers": MANAGER_HEADERS,
+            "json": {
+                "id": 0,
+                "name": "coupon_from_test",
+                "brief": "test brief",
+                "couponType": "money_off",
+                "couponValue": 5,
+                "effectiveAt": int((time.time() - 3600) * 1000),
+                "expiredAt": int((time.time() + 3600 * 24) * 1000),
+                "duration": 0,
+                "quantity": -1,
+                "maxReceived": -1,
+                "unusedLimit": -1,
+                "thresholdPrice": 100,
+                "sentType": 0,
+                "receiveType": 0,
+                "userTag": "tag1,tag2",
+                "returnable": False,
+                "rangeType": 1,
+                "rangeStoreCode": config.STORE1,
+                "rangeValue": "value",
+            }
+        }, locals())
+        
 
+    # @staticmethod
+    # def coupon_list(userId=USER_ID, page=1, size=20, status=None):
+    #     '''
+    #     '''
+    #     params = {
+    #         "userId": userId,
+    #         "page": page,
+    #         "size": size,
+    #     }
+    #     if status:
+    #         params = params | {"status": status}
+    #     return get(Url.coupon_list, params=params)
     @staticmethod
-    def coupon_list(userId=USER_ID, page=1, size=20, status=None):
-        '''
-        '''
-        params = {
-            "userId": userId,
-            "page": page,
-            "size": size,
-        }
-        if status:
-            params = params | {"status": status}
-        return get(Url.coupon_list, params=params)
+    def coupon_list(**kwargs):
+        '''{
+            "method": "get",
+            "url": Url.coupon_list, 
+            "params": {
+                "userId": USER_ID,
+                "page": 1,
+                "size": 20,
+                "status": ""
+            }
+        }'''        
+        return req({
+            "method": "get",
+            "url": Url.coupon_list, 
+            "params": {
+                "userId": USER_ID,
+                "page": 1,
+                "size": 20,
+                "status": ""
+            }
+        }, locals())
 
+    # @staticmethod
+    # def coupon_info(coupon_id, userId=USER_ID):
+        
+    #     return get(Url.coupon_info.format(id=coupon_id), params={"userId": userId})
     @staticmethod
-    def coupon_info(coupon_id, userId=USER_ID):
-        '''
-        '''
-        return get(Url.coupon_info.format(id=coupon_id), params={"userId": userId})
+    def coupon_info(**kwargs):
+        '''{
+            "method": "get",
+            "url": Url.coupon_info, 
+            "params": {
+                "code": "",
+                "version": 0,
+                "allVersion": False
+            },
+            "headers": MANAGER_HEADERS
+        }'''
+        return req({
+            "method": "get",
+            "url": Url.coupon_info, 
+            "params": {
+                "code": "",
+                "version": 0,
+                "allVersion": False
+            },
+            "headers": MANAGER_HEADERS
+        }, locals())
 
+    # @staticmethod
+    # def receive_coupon(code, userId=USER_ID):
+    #     return post(Url.coupon_receive, params={"userId": userId}, json={
+    #         "code": code
+    #     })
     @staticmethod
-    def receive_coupon(code, userId=USER_ID):
-        return post(Url.coupon_receive, params={"userId": userId}, json={
-            "code": code
-        })
+    def receive_coupon(**kwargs):
+        return req({
+            "method": "post",
+            "url": Url.coupon_receive, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "code": ""
+            }
+        }, locals())
 
+    # @staticmethod
+    # def create_ticket(**kwargs):
+    #     ticket = {
+    #         "name": "test ticket name",
+    #         "brief": "test ticket brief",
+    #         "storeCode": STORE1,
+    #         "promotionTag": "test-ticket-tag",
+    #         "ticketType": "package",
+    #         "ticketValue": 100,
+    #         "duration": 3600 * 24 * 30 * 1000
+    #     }
+    #     return post(
+    #         Url.ticket_create,
+    #         headers=MANAGER_HEADERS,
+    #         json=ticket | kwargs
+    #     )
     @staticmethod
     def create_ticket(**kwargs):
-        ticket = {
-            "name": "test ticket name",
-            "brief": "test ticket brief",
-            "storeCode": STORE1,
-            "promotionTag": "test-ticket-tag",
-            "ticketType": "package",
-            "ticketValue": 100,
-            "duration": 3600 * 24 * 30 * 1000
-        }
-        return post(
-            Url.ticket_create,
-            headers=MANAGER_HEADERS,
-            json=ticket | kwargs
-        )
-
-    @staticmethod
-    def offer_ticket(ticketId, receives=[{"userId": USER_ID, "count": 1}]):
-        r = post(
-            Url.ticket_offer,
-            headers=MANAGER_HEADERS,
-            json={
-                "ticketId": ticketId,
-                "receives": receives
+        '''{
+            "method": "post",
+            "url": Url.ticket_create,
+            "headers": MANAGER_HEADERS,
+            "json": {
+                "name": "test ticket name",
+                "brief": "test ticket brief",
+                "storeCode": STORE1,
+                "promotionTag": "test-ticket-tag",
+                "ticketType": "package",
+                "ticketValue": 100,
+                "duration": 3600 * 24 * 30 * 1000
             }
-        )
-        return r
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.ticket_create,
+            "headers": MANAGER_HEADERS,
+            "json": {
+                "name": "test ticket name",
+                "brief": "test ticket brief",
+                "storeCode": STORE1,
+                "promotionTag": "test-ticket-tag",
+                "ticketType": "package",
+                "ticketValue": 100,
+                "duration": 3600 * 24 * 30 * 1000
+            }
+        }, locals())
 
+    # @staticmethod
+    # def offer_ticket(ticketId, receives=[{"userId": USER_ID, "count": 1}]):
+    #     r = post(
+    #         Url.ticket_offer,
+    #         headers=MANAGER_HEADERS,
+    #         json={
+    #             "ticketId": ticketId,
+    #             "receives": receives
+    #         }
+    #     )
+    #     return r
     @staticmethod
-    def ticket_list(userId=USER_ID):
-        return get(Url.ticket_list, params={"userId": userId})
+    def offer_ticket(**kwargs):
+        return req({
+            "method": "post",
+            "url": Url.ticket_offer,
+            "headers": MANAGER_HEADERS,
+            "json": {
+                "ticketId": 0,
+                "receives": [
+                    {"userId": USER_ID, "count": 1}
+                ]
+            }
+        }, locals())
+        
+
+    # @staticmethod
+    # def ticket_list(userId=USER_ID):
+    #     return get(Url.ticket_list, params={"userId": userId})
+    @staticmethod
+    def ticket_list(**kwargs):
+        '''{
+            "method": "get",
+            "url": Url.ticket_list,
+            "params": {"userId": USER_ID}
+        }'''
+        return req({
+            "method": "get",
+            "url": Url.ticket_list,
+            "params": {"userId": USER_ID}
+        }, locals())
 
     @staticmethod
     def ticket_info():
         pass
 
-    @staticmethod
-    def trade_confirmation(skus, userId=USER_ID, coupons=[], disableCoupons=[], disableAllCoupons=False, disableTicket=False, promotions=[], storeCode=STORE1):
+    # @staticmethod
+    # def trade_confirmation(skus, userId=USER_ID, coupons=[], disableCoupons=[], disableAllCoupons=False, disableTicket=False, promotions=[], storeCode=STORE1):
         # 默认storeCode
-        for sku in skus:
-            if "storeCode" not in sku and storeCode:
-                sku["storeCode"] = storeCode
+        # for sku in skus:
+        #     if "storeCode" not in sku and storeCode:
+        #         sku["storeCode"] = storeCode
 
-        return post(Url.trade_confirmation, params={"userId": userId}, json={
-            "skus": skus,
-            "coupons": coupons,
-            "disableCoupons": disableCoupons,
-            "disableAllCoupons": disableAllCoupons,
-            "disableTicket": disableTicket,
-            "promotions": promotions
-        })
+        # return post(Url.trade_confirmation, params={"userId": userId}, json={
+        #     "skus": skus,
+        #     "coupons": coupons,
+        #     "disableCoupons": disableCoupons,
+        #     "disableAllCoupons": disableAllCoupons,
+        #     "disableTicket": disableTicket,
+        #     "promotions": promotions
+        # })
+    @staticmethod
+    def trade_confirmation(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.trade_confirmation, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "skus": [],
+                "coupons": [],
+                "disableCoupons": [],
+                "disableAllCoupons": False,
+                "disableTicket": False,
+                "promotions": [],
+                "dry": False
+            }
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.trade_confirmation, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "skus": [],
+                "coupons": [],
+                "disableCoupons": [],
+                "disableAllCoupons": False,
+                "disableTicket": False,
+                "promotions": [],
+                "dry": False
+            }
+        }, locals())
+
+    # @staticmethod
+    # def trade_submit(skus, totalPriceViewed, userId=USER_ID, coupons=[], disableCoupons=[], disableAllCoupons=False, promotions=[]):
+
+    #     return post(Url.trade_submit, params={"userId": userId}, json={
+    #         "skus": skus,
+    #         "coupons": coupons,
+    #         "disableCoupons": disableCoupons,
+    #         "disableAllCoupons": disableAllCoupons,
+    #         "promotions": promotions,
+    #         "totalPriceViewed": totalPriceViewed
+    #     })
+    @staticmethod
+    def trade_submit(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.trade_submit, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "skus": [],
+                "coupons": [],
+                "disableCoupons": [],
+                "disableAllCoupons": False,
+                "disableTicket": False,
+                "promotions": [],
+                "totalPriceViewed": 0
+            }
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.trade_submit, 
+            "params": {"userId": USER_ID}, 
+            "json": {
+                "skus": [],
+                "coupons": [],
+                "disableCoupons": [],
+                "disableAllCoupons": False,
+                "disableTicket": False,
+                "promotions": [],
+                "totalPriceViewed": 0
+            }
+        }, locals())
+
+    # @staticmethod
+    # def trade_token(tradeNo, userId=USER_ID):
+    #     return post(
+    #         Url.trade_token,
+    #         params={"userId": userId},
+    #         json={"tradeNo": tradeNo}
+    #     )
 
     @staticmethod
-    def trade_submit(skus, totalPriceViewed, userId=USER_ID, coupons=[], disableCoupons=[], disableAllCoupons=False, promotions=[]):
+    def trade_token(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.trade_token,
+            "params": {"userId": USER_ID},
+            "json": {"tradeNo": '1'}
+        }'''
+        return req({
+            "method": "post",
+            "url": Url.trade_token,
+            "params": {"userId": USER_ID},
+            "json": {"tradeNo": '1'}
+        }, locals())
 
-        return post(Url.trade_submit, params={"userId": userId}, json={
-            "skus": skus,
-            "coupons": coupons,
-            "disableCoupons": disableCoupons,
-            "disableAllCoupons": disableAllCoupons,
-            "promotions": promotions,
-            "totalPriceViewed": totalPriceViewed
-        })
-
+    # @staticmethod
+    # def trade_detail(tradeNO, token, userId=USER_ID):
+    #     return get(Url.trade_detail.format(tradeNO=tradeNO), params={"userId": userId, "token": token})
     @staticmethod
-    def trade_token(tradeNo, userId=USER_ID):
-        return post(
-            Url.trade_token,
-            params={"userId": userId},
-            json={"tradeNo": tradeNo}
-        )
+    def trade_detail(**kwargs):
+        '''{
+            "method": "get",
+            "url":Url.trade_detail.format(tradeNO="0"), 
+            "params": {
+                "userId": USER_ID, 
+                "token": ""
+            }
+        }'''
+        tradeNo = kwargs.get('tradeNo', "0")
+        return req({
+            "method": "get",
+            "url": Url.trade_detail.format(tradeNO=tradeNo), 
+            "params": {
+                "userId": USER_ID, 
+                "token": ""
+            }
+        }, locals())
 
+    # @staticmethod
+    # def trade_list(userId=USER_ID, pageSize=20, page=1):
+    #     return get(Url.trade_list, params=dict(userId=userId, page=page, pageSize=pageSize))
     @staticmethod
-    def trade_detail(tradeNO, token, userId=USER_ID):
-        return get(Url.trade_detail.format(tradeNO=tradeNO), params={"userId": userId, "token": token})
+    def trade_list(**kwargs):
+        '''{
+            "method": "get",
+            "url": Url.trade_list, 
+            "params":{
+                "userId": USER_ID, 
+                "page":1, 
+                "pageSize": 20
+            }
+        }'''
+        return req({
+            "method": "get",
+            "url": Url.trade_list, 
+            "params":{
+                "userId": USER_ID, 
+                "page":1, 
+                "pageSize": 20
+            }
+        }, locals())
 
+    # @staticmethod
+    # def trade_cancel(tradeNo, userId=USER_ID):
+    #     return post(Url.trade_cancel.format(tradeNo=tradeNo), params={"userId": userId})
     @staticmethod
-    def trade_list(userId=USER_ID, pageSize=20, page=1):
-        return get(Url.trade_list, params=dict(userId=USER_ID, page=page, pageSize=pageSize))
+    def trade_cancel(**kwargs):
+        '''{
+            "method": "post",
+            "url": Url.trade_cancel.format(tradeNo=""), 
+            "params": {"userId": USER_ID}
+        }'''
+        tradeNo=kwargs.get("tradeNo", "1")
+        return req({
+            "method": "post",
+            "url": Url.trade_cancel.format(tradeNo=tradeNo), 
+            "params": {"userId": USER_ID}
+        }, locals())
 
-    @staticmethod
-    def trade_cancel(tradeNo, userId=USER_ID):
-        return post(Url.trade_cancel.format(tradeNo=tradeNo), params={"userId": userId})
 
-
+    # @staticmethod
+    # def pay(**kwargs):
+    #     return post(Url.pay, json=kwargs)
     @staticmethod
     def pay(**kwargs):
-        return post(Url.pay, json=kwargs)
+        return req({
+            "method": "post",
+            "url": Url.pay,
+            "json": {
+                "channel": "",
+                "token": "",
+                "appId": "",
+            }
+        }, locals())
 
 session_pay_admin = requests.Session()
 class PayAdmin():
@@ -465,3 +960,30 @@ async def areq(concurrency_count, req_kwargs):
         task = [session.request(**req_kwargs | aiohttp_proxy) for _ in range(concurrency_count)]
         res = await asyncio.gather(*task)
         return res
+
+def req(default_req_kwargs, kwargs):
+    # log.info(kwargs)
+    if default:=kwargs.pop('default', None) is None:
+        default=default_req_kwargs
+    _kwargs = kwargs.pop('kwargs')
+    _kwargs.update(kwargs)
+    req_kwargs = update(default, _kwargs)
+    return request(**req_kwargs)
+
+def update(dft, kwargs, dk='$', s=None, flag1=True):
+    # log.info(f'flag: {flag1}, dft: {dft}, _kwargs: {kwargs}')
+    if s is None:
+        s = set()
+    for k in dft:
+        # log.info(f'>>>> in loop: {k}')
+        if k in kwargs:
+            dft[k] = kwargs[k]
+            log.info(f'+++++++++++++++++++args updated: {dk}.{k}')
+            s.add(k)
+            # 不加break 如果有重复的参数 eg: a=1, json={"a":2}, 更新完json后会再更新json内部
+            # break
+        if isinstance(dft[k], dict):
+            update(dft[k], kwargs, dk=f'{dk}.{k}', s=s, flag1=False)
+    if flag1:
+        log.info(f'---{s}--{set(kwargs.keys())}-----------args ignored: {set(kwargs.keys()) - s}')
+    return dft

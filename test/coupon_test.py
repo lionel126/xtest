@@ -36,7 +36,7 @@ def test_create_coupon(coupon):
 
     # tmp = {"cartItemId": sku["id"]}
     # tmp = {k:v for k, v in sku.items() if k in available_keys}
-    r = MallV2.create_coupon(coupon)
+    r = MallV2.create_coupon(**coupon)
     assert r.status_code == 200
     assert r.json()['status'] == 0
     return r
@@ -264,7 +264,7 @@ def test_create_coupon(coupon):
     }, 400),
 ])
 def test_create_coupon_without(coupon, status):
-    r = MallV2.create_coupon(coupon, mode='replace')
+    r = MallV2.create_coupon(json=coupon)
     assert r.status_code == 200
     assert r.json()['status'] == status
 
@@ -292,14 +292,14 @@ def test_update_coupon():
 
     # tmp = {"cartItemId": sku["id"]}
     tmp = {k: v for k, v in sku.items() if k in available_keys}
-    coupon = MallV2.create_coupon({
+    coupon = MallV2.create_coupon(**{
         "thresholdPrice": 1000,
         "couponValue": 1000,
         "rangeType": 1,
         "rangeStoreCode": tmp["storeCode"],
         "rangeValue": tmp["skuId"],
     }).json()['data']
-    MallV2.coupon_shelf(coupon['code'], 'on')
+    MallV2.coupon_shelf(code=coupon['code'], action='on')
     coupon2 = {k: v for k, v in coupon.items() if k in ("id", "code", "name",
                                                         "couponType", "effectiveAt", "expiredAt", "thresholdPrice", "rangeValue")}
     coupon2.update({"couponValue": 2000})
@@ -308,7 +308,7 @@ def test_update_coupon():
     jsn = r.json()
     assert jsn['status'] == 3004
 
-    MallV2.coupon_shelf(coupon['code'], 'off')
+    MallV2.coupon_shelf(code=coupon['code'], action='off')
     coupon2.update({"couponValue": 2000})
     r = MallV2.update_coupon(**coupon2)
     assert r.status_code == 200
@@ -317,14 +317,14 @@ def test_update_coupon():
 
 def test_receive_coupon_off_shelf():
     code = MallV2.create_coupon().json()['data']['code']
-    r = MallV2.receive_coupon(code)
+    r = MallV2.receive_coupon(code=code)
     assert r.status_code == 200
     assert r.json()['status'] == 3004
 
 
 def test_offer_coupon_off_shelf():
     code = MallV2.create_coupon().json()['data']['code']
-    r = MallV2.offer_coupon(code)
+    r = MallV2.offer_coupon(code=code)
     assert r.status_code == 200
     assert r.json()['status'] == 3004
 
@@ -332,19 +332,19 @@ def test_offer_coupon_off_shelf():
 def test_coupon_max_quantity():
     '''优惠券：超过最大数量无法领取
     '''
-    code = MallV2.create_coupon({"quantity": 2}).json()['data']['code']
-    MallV2.coupon_shelf(code, 'on')
-    r = MallV2.receive_coupon(code, USER_ID)
+    code = MallV2.create_coupon(**{"quantity": 2}).json()['data']['code']
+    MallV2.coupon_shelf(code=code, action='on')
+    r = MallV2.receive_coupon(code=code)
     assert r.status_code == 200
     assert r.json()['status'] == 0
-    r = MallV2.receive_coupon(code, USER_ID2)
+    r = MallV2.receive_coupon(code=code, userId=USER_ID2)
     assert r.status_code == 200
     assert r.json()['status'] == 0
 
-    r = MallV2.receive_coupon(code)
+    r = MallV2.receive_coupon(code=code)
     assert r.status_code == 200
     assert r.json()['status'] == 3005
-    r = MallV2.receive_coupon(code, USER_ID2)
+    r = MallV2.receive_coupon(code=code, userId=USER_ID2)
     assert r.status_code == 200
     assert r.json()['status'] == 3005
 
@@ -352,19 +352,19 @@ def test_coupon_max_quantity():
 def test_coupon_max_received():
     '''优惠券: 单人领取数限制为1的券，两个人都只能领取1张
     '''
-    code = MallV2.create_coupon({"maxReceived": 1}).json()['data']['code']
-    MallV2.coupon_shelf(code, 'on')
-    r = MallV2.receive_coupon(code, USER_ID)
+    code = MallV2.create_coupon(**{"maxReceived": 1}).json()['data']['code']
+    MallV2.coupon_shelf(code=code, action='on')
+    r = MallV2.receive_coupon(code=code)
     assert r.status_code == 200
     assert r.json()['status'] == 0
-    r = MallV2.receive_coupon(code, USER_ID)
+    r = MallV2.receive_coupon(code=code)
     assert r.status_code == 200
     assert r.json()['status'] == 3006
 
-    r = MallV2.receive_coupon(code, USER_ID2)
+    r = MallV2.receive_coupon(code=code, userId=USER_ID2)
     assert r.status_code == 200
     assert r.json()['status'] == 0
-    r = MallV2.receive_coupon(code, USER_ID2)
+    r = MallV2.receive_coupon(code=code, userId=USER_ID2)
     assert r.status_code == 200
     assert r.json()['status'] == 3006
 
@@ -372,12 +372,12 @@ def test_coupon_max_received():
 def test_coupon_list():
     '''todo 优惠券：获取优惠券列表
     '''
-    r = MallV2.coupon_list(USER_ID)
+    r = MallV2.coupon_list(userId=USER_ID)
     assert r.status_code == 200
 
 
 def test_coupon_info():
     '''todo
     '''
-    r = MallV2.coupon_info(270, USER_ID)
+    r = MallV2.coupon_info(code='7e68c6343de441b6a96dc131056f9a06', allVersion=True)
     assert r.status_code == 200
