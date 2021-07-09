@@ -1903,10 +1903,10 @@ class TestTradeSubmit():
         
         rst = await areq(concurrency_count, kwargs)            
         assert {result.status for result in rst} == {200}
-        res = [(await result.json())['status'] for result in rst]
-        assert res.count(0) == 1
+        res_status = [(await result.json())['status'] for result in rst]
+        assert res_status.count(0) == 1
         # 6501 获取redis锁失败; 6200 优惠不可用导致价格对不上 下单失败
-        assert res.count(6200) + res.count(6501) == concurrency_count - 1
+        assert res_status.count(6200) + res_status.count(6501) == concurrency_count - 1
 
 class TestPay():
     '''pay

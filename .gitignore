@@ -1,6 +1,11 @@
 venv/
+.venv
 tmp/
 **/__pycache__
 .pytest_cache
 .vscode
 reports/
+_build
+_static
+_templates
+_modules/
