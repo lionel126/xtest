@@ -13,6 +13,7 @@ STORE1 = 'mock2'
 STORE2 = 'mock3'
 STORE3 = 'mock4'
 STORE4 = 'mock5'
+STORE5 = 'resource'
 STORE_NOT_EXIST = 'store_not_exist_yhnmkijhasdf'
 SKU_ID_NOT_EXIST = 'sku-id-not-exist-izcvkjhqwer'
 

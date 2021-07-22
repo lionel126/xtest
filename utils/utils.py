@@ -2,6 +2,7 @@ from uuid import uuid4
 from aiohttp import ClientSession
 import asyncio
 import logging
+from requests import request
 
 log = logging.getLogger(__file__)
 # DEFAULT_REQ_KWARGS = {"verify": False}
@@ -945,5 +946,32 @@ async def areq(concurrency_count, req_kwargs):
         res = await asyncio.gather(*task)
         return res
 
+# def update(dft, kwargs, dk='$', s=set(), flag1=True):
+#     # log.info(f'flag: {flag1}, dft: {dft}, _kwargs: {kwargs}')
+#     # if s is None:
+#     #     s = set()
+#     for k in dft:
+#         # log.info(f'>>>> in loop: {k}')
+#         if k in kwargs:
+#             dft[k] = kwargs[k]
+#             # log.warning(f'+++++++++++++++++++args updated: {dk}.{k}')
+#             s.add(k)
+#             # 不加break 如果有重复的参数 eg: a=1, json={"a":2}, 更新完json后会再更新json内部
+#             # break
+#         if isinstance(dft[k], dict):
+#             dft[k] = update(dft[k], kwargs, dk=f'{dk}.{k}', s=s, flag1=False)
+#     # if flag1:
+#     #     log.warning(
+#     #         f'---{s}--{set(kwargs.keys())}-----------args ignored: {set(kwargs.keys()) - s}')
+#     return dft
 
+# def req(ka):
+    
+#     kwargs = ka.pop('kwargs', None)
+#     log.warning(f'1.ka: {ka}')
+#     log.warning(f'1.kwargs: {kwargs}')
+#     if kwargs:
+#         ka = update(ka, kwargs)
+#     log.warning(f'2: {ka}')
+#     return request(**ka)
 

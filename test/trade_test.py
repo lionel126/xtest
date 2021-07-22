@@ -21,8 +21,8 @@ class TestTradeConfirm():
     def setup_method(self):
         '''清空默认用户的优惠券和兑换券
         '''
-        MallV2DB.delete_coupons()
-        MallV2DB.delete_tickets()
+        MallV2DB.delete_user_coupons()
+        MallV2DB.delete_user_tickets()
 
     def test_confirm_without_coupon(self):
         '''确认订单: 单sku+money_off优惠券 不选优惠券
@@ -201,10 +201,10 @@ class TestTradeConfirm():
         }).json()['data']['code']
 
         MallV2.coupon_shelf(code=coupon_code, action='on')
-        MallV2DB.delete_coupons(USER_ID2)
+        MallV2DB.delete_user_coupons(USER_ID2)
         MallV2.receive_coupon(code=coupon_code, userId=USER_ID2)
         MallV2.receive_coupon(code=coupon_code)
-        coupon_id = MallV2.coupon_list(userId=USER_ID2).json()['data']['list'][0]['id']
+        coupon_id = MallV2.user_coupon_list(userId=USER_ID2).json()['data']['list'][0]['id']
         s = {'skuId': sku['skuId'], 'quantity': 1, "storeCode": STORE1}
         self.kwargs = dict(skus=[s], coupons=[coupon_id])
         r = MallV2.trade_confirmation(**self.kwargs)
@@ -299,6 +299,53 @@ class TestTradeConfirm():
         assert result['totalPrice'] == price - max(coupon1_price, coupon2_price)
         assert result['couponDiscount'] == max(coupon1_price, coupon2_price)
         self.data = data
+
+    # def test_1_coupon_x_promotion_tags(self):
+    #     '''订单确认：组合promotionTag 。 改方案
+    #     '''
+    #     tag = new_tag()[:10]
+    #     tag2 = new_tag()[:10]
+    #     price = 9900
+    #     coupon1_price = 1000
+    #     # coupon2_price = 4000
+
+    #     # 新建sku
+    #     sku = Data.create_product({"skus": [
+    #         {"price": price, "promotionTags": [tag]}
+    #     ]}).json()['data']['skus'][0]
+
+    #     # 创建优惠券 上架 用户领取优惠券
+    #     coupon1 = MallV2.create_coupon(**{
+    #         "thresholdPrice": 5000,
+    #         "couponValue": coupon1_price,
+    #         "rangeType": 2,
+    #         "rangeValue": f'{tag}&{tag2}',
+    #     }).json()['data']
+    #     MallV2.coupon_shelf(code=coupon1['code'], action='on')
+    #     MallV2.receive_coupon(code=coupon1['code'])
+    #     # storeCode = '', 全平台 coupon
+        
+    
+    #     s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+    #     self.kwargs = dict(skus=[s])
+    #     r = MallV2.trade_confirmation(**self.kwargs)
+    #     assert r.status_code == 200
+    #     jsn = r.json()
+    #     assert jsn['status'] == 0
+
+    #     data = jsn['data']
+        
+    #     skus = data['skus']
+    #     assert skus[0]['price'] == price
+    #     # assert skus[0]['totalPrice'] == price - max(coupon1_price, coupon2_price)
+
+    #     coupon = [c for c in data['coupons'] if c['selected'] is True][0]
+    #     # assert coupon['code'] == max((coupon1, coupon2), key=lambda x:x['couponValue'])['code']
+
+    #     result = data['result']
+    #     # assert result['totalPrice'] == price - max(coupon1_price, coupon2_price)
+    #     # assert result['couponDiscount'] == max(coupon1_price, coupon2_price)
+    #     self.data = data
     
     def test_sku_coupon_of_another_store(self):
         '''storeCode不一致的coupon不能用
@@ -518,17 +565,18 @@ class TestTradeConfirm():
                 "rangeValue": sku["skuId"]
             },
             {
+                "name": "cc1",
                 "couponValue": 6,
                 "rangeType": 1,
                 "rangeValue": sku2["skuId"]
             },
         ]
         
-        for c in templates:    
+        for c in templates:
             coupon = MallV2.create_coupon(**c).json()['data']
             MallV2.coupon_shelf(code=coupon['code'], action='on')
             MallV2.receive_coupon(code=coupon['code'])
-      
+
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 1, "storeCode": STORE1}
         total = price + price2
@@ -967,7 +1015,6 @@ class TestTradeConfirm():
         r = MallV2.trade_confirmation(** self.kwargs | {"coupons": userCouponIds})
 
 
-
     def test_2_skus_3_coupons(self):
         '''优先优惠大的券，优先应用在price高的sku上
         不能保证优惠最大 
@@ -1083,7 +1130,7 @@ class TestTradeConfirm():
             coupon = MallV2.create_coupon(**c).json()['data']
             MallV2.coupon_shelf(code=coupon['code'], action='on')
             MallV2.receive_coupon(code=coupon['code'])
-        coupons = MallV2.coupon_list().json()['data']['list']
+        coupons = MallV2.user_coupon_list().json()['data']['list']
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 1, "storeCode": STORE1}
         # 默认会使用-15和-1的券， -6的券因为使用了-15而不可用。 选择-15和-6后 只有-15可用
@@ -1388,7 +1435,7 @@ class TestTradeConfirm():
             {"price": price2, "promotionTags": [tag]}
         ]}).json()['data']['skus'][0]
 
-        ticket = MallV2.create_ticket(promotionTag=tag).json()['data']
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
         MallV2.offer_ticket(ticketId=ticket['id'])
         MallV2.ticket_list()
 
@@ -1423,8 +1470,8 @@ class TestTradeSubmit():
     部分trade价格0
     '''
     def setup_method(self):
-        MallV2DB.delete_coupons()
-        MallV2DB.delete_tickets()
+        MallV2DB.delete_user_coupons()
+        MallV2DB.delete_user_tickets()
 
     @pytest.mark.parametrize('count', [
         3,
@@ -1619,11 +1666,11 @@ class TestTradeSubmit():
         '''
         tc = TestTradeConfirm()
         tc.test_2_skus_2_of_3_coupons()
-        a = MallV2.coupon_list().json()['data']['list']
+        a = MallV2.user_coupon_list().json()['data']['list']
         trade = MallV2.trade_submit(**tc.kwargs | {"totalPriceViewed": tc.data['result']['totalPrice']}).json()['data']['trade']
-        b = MallV2.coupon_list().json()['data']['list']
+        b = MallV2.user_coupon_list().json()['data']['list']
         r = MallV2.trade_cancel(tradeNo=trade[0])
-        c = MallV2.coupon_list().json()['data']['list']
+        c = MallV2.user_coupon_list().json()['data']['list']
         # 
         assert {i['id'] for i in a if i['status']=='available'} == {i['id'] for i in c if i['status']=='available'} | {i['userCouponId'] for i in tc.data['coupons'] if i['selected'] is True}
         # 取消订单前后 不会修改优惠券
@@ -1699,9 +1746,9 @@ class TestTradeSubmit():
         
         # 以上复制自 TestTradeConfirm.test_2_skus_2_of_3_coupons 增加了优惠券returnable: True
 
-        coupons_before_submit = MallV2.coupon_list().json()['data']['list']
+        coupons_before_submit = MallV2.user_coupon_list().json()['data']['list']
         MallV2.trade_submit(**self.kwargs | {"totalPriceViewed": self.data['result']['totalPrice']})
-        coupons_after_submit = MallV2.coupon_list().json()['data']['list']
+        coupons_after_submit = MallV2.user_coupon_list().json()['data']['list']
         
 
         consumed = {c['id'] for c in coupons_after_submit if c['status'] == 'consumed'}
@@ -1915,8 +1962,8 @@ class TestPay():
     '''
 
     def setup_method(self):
-        MallV2DB.delete_coupons()
-        MallV2DB.delete_tickets()
+        MallV2DB.delete_user_coupons()
+        MallV2DB.delete_user_tickets()
 
     # @pytest.mark.parametrize('orderNo',[
     #     "20210617205750000683","20210617205750000686"

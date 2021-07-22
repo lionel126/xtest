@@ -16,7 +16,7 @@ export SSL_CERT_FILE=./tmp/mitmproxy-ca-cert.pem
 pytest --log-cli-level=INFO <test-file.py>
 
 # 问题
-结构修改后大量工作量: cart_list.data.skus [] => null
+结构修改后大量工作量: cart_list.data.skus [] => null, get_skus(), validate 400
 程序写测试用例 本身bug
 很早提测了 需求也在变动 不是说所有改动影响到测试 但是的确有一些
 
@@ -27,19 +27,21 @@ pytest --log-cli-level=INFO <test-file.py>
 case 怎么写：
 试探
 
-# 
-并发用券/ticket
-第三方服务超时（5s）：商品库/支付...
-跨结算商户下单，部分支付。 满减优惠券不应该跨结算商户
-
+后记：
+测了什么？ 这些用例都是测什么的 哪些测了 哪些没测
+怎么知道测了什么？ 测试覆盖
 # todo:
 幂等性
 测试用例复用
 传None/不传/传空值？？ requests封装 None和不传的区别 
     不封装，每次写个请求都要去找文档，参数多的（创建优惠券）太麻烦
-    封装，没办法覆盖所有参数的不传
+    封装，没办法覆盖所有参数的不传 -> None 走默认, {}走??
+供应商处下单数&下载数 避免重复扣款
 
 # 符合设计
+并发用券/ticket
+第三方服务超时（5s）：商品库/支付...
+跨结算商户下单，部分支付。 满减优惠券不应该跨结算商户
 增加一个sku，优惠反而减少/？？？？？
 
 
