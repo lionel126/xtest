@@ -5,6 +5,8 @@ import config
 from config import USER_ID, STORE1, BASE_URL
 import logging
 from requests import request
+from utils.utils import replace, append
+from functools import wraps, update_wrapper
 
 
 log = logging.getLogger(__file__)
@@ -78,54 +80,29 @@ def update(dft, kwargs, dk='$', s=None, flag1=True):
             f'---{s}--{set(kwargs.keys())}-----------args ignored: {set(kwargs.keys()) - s}')
     return dft
 
-def varname(v, namespace):
-    for name in namespace:
-        if v is namespace[name]:
-            return name
+# class api_wrapper(object):
+#     '''deprecated'''
+#     def __init__(self, func):
+#         self._locals = {}
+#         self.func = func
+#         update_wrapper(self, func) # not working??
 
-def replace(kwargs, *args, dk='$', s=None, flag1=True):
-    if s is None:
-        s = set()
-    for k in kwargs:
-        # log.info(f'>>>> in loop: {k}')
-        for arg in args:
-            if k in arg:
-                arg[k] = kwargs[k]
-                log.info(f'+++++++++++++++++++args updated: {dk}.{varname(arg, locals())}.{k}')
-                s.add(k)
-                # 不加break 如果有重复的参数 eg: a=1, json={"a":2}, 更新完json后会再更新json内部
-                # break
-                if isinstance(arg[k], dict):
-                    update(kwargs, arg, dk=f'{dk}.{k}', s=s, flag1=False)
-    if flag1:
-        log.info(
-            f'args ignored: {set(kwargs.keys()) - s}')
+#     def __call__(self, *args, **kwargs):
+#         def tracer(frame, event, arg):
+#             if event == 'return':
+#                 self._locals = frame.f_locals.copy()
 
-def append(d: dict, **kwargs):
-    d.update(kwargs)
-
-class api_wrapper(object):
-    def __init__(self, func):
-        self._locals = {}
-        self.func = func
-        self.__doc__ = func.__doc__
-
-    def __call__(self, *args, **kwargs):
-        def tracer(frame, event, arg):
-            if event == 'return':
-                self._locals = frame.f_locals.copy()
-
-        # tracer is activated on next call, return or exception
-        sys.setprofile(tracer)
-        try:
-            # trace the function call
-            self.func(*args, **kwargs)
-            res = request(
-                **update(self._locals['__default__'], self._locals['kwargs']))
-        finally:
-            # disable tracer and replace with old one
-            sys.setprofile(None)
-        return res
+#         # tracer is activated on next call, return or exception
+#         sys.setprofile(tracer)
+#         try:
+#             # trace the function call
+#             self.func(*args, **kwargs)
+#             res = request(
+#                 **update(self._locals['__default__'], self._locals['kwargs']))
+#         finally:
+#             # disable tracer and replace with old one
+#             sys.setprofile(None)
+#         return res
 
     # def clear_locals(self):
     #     self._locals = {}
@@ -133,74 +110,73 @@ class api_wrapper(object):
     # @property
     # def locals(self):
     #     return self._locals
-# from functools import wraps
-# def api_wrapper(func):
-#     @wraps(func)
-#     def wrap(*args, **kwargs):
-#         _locals = None
-#         def tracer(frame, event, arg):
-#             if event == 'return':
-#                 # global _locals
-#                 _locals = frame.f_locals.copy()
-#                 # print(_locals)
-#         sys.setprofile(tracer)
-#         func(*args, **kwargs)
-#         print(_locals)
-#         res = request(**update(_locals['__default__'], _locals['kwargs']))
-#         sys.setprofile(None)
-#         return res
-#     return wrap
+
+def api_wrapper(func):
+    @wraps(func)
+    def wrap(*args, **kwargs):
+        _locals = {}
+        def tracer(frame, event, arg):
+            if event == 'return':
+                _locals.update(frame.f_locals.copy())
+        sys.setprofile(tracer)
+        try:
+            func(*args, **kwargs)
+            # print(f'{_locals=}')
+        finally:
+            sys.setprofile(None)
+        res = request(**update(_locals["__default__"], _locals['kwargs']))
+        return res
+    return wrap
 
 
 
-@api_wrapper
-def product_detail(**kwargs):
-    __default__ = {
-        'method': 'post',
-        'url': Url.product_detail,
-        'json': {
-            'storeCode': STORE1,
-            'productId': '1'
-        }
-    }
+def product_detail(method='POST', json=None):
+    '''product detail
+    
+    :param json: [{
+        'storeCode': STORE1,
+        'productId': '123456'
+    }]
+    '''
+    # if json is None:
+    #     json = [{
+    #         'storeCode': STORE1,
+    #         'productId': '1'
+    #     }]
+    # replace(kwargs, json)
 
-@api_wrapper
-def get_cart(**kwargs):
+    return request(method=method, url=Url.product_detail, json=json)
+
+def get_cart(method="GET", params=None, **kwargs):
     '''获取购物车列表
-    param: {
-        "method": "get",
-        "url": Url.cart_list,
-        "params": {"userId": USER_ID}
-    }'''
-    __default__ = {
-        "method": "get",
-        "url": Url.cart_list,
-        "params": {"userId": USER_ID}
-    }
+    :param params: Defaults to {"userId": USER_ID}
+    '''
+    
+    if params is None:
+        params = {"userId": USER_ID}
+    replace(kwargs, params)
+    return request(method=method, url=Url.cart_list, params=params)
 
-
-@api_wrapper
-def add_to_cart(**kwargs):
-    '''{
-        "method": "post",
-        "url": Url.cart_add,
-        "params": {"userId": USER_ID},
-        "json": {
+def add_to_cart(method="POST", params=None, json=None, **kwargs):
+    '''add sku to cart
+    
+    :param params: {"userId": USER_ID},
+    :param json: {
             "skuId": "",
             "quantity": 1,
             "storeCode": STORE1
         }
-    }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.cart_add,
-        "params": {"userId": USER_ID},
-        "json": {
+    '''
+    if params is None:
+        params={"userId": USER_ID}
+    if json is None:
+        json = {
             "skuId": "",
             "quantity": 1,
             "storeCode": STORE1
         }
-    }
+    replace(kwargs, json, params)
+    return request(method=method, url=Url.cart_add, params=params, json=json)
 
 
 @api_wrapper
@@ -272,6 +248,26 @@ def select_cart_item(**kwargs):
 @api_wrapper
 def create_coupon(**kwargs):
     """create coupon
+    :param json: Defaults to {
+            "name": "coupon_from_test",
+            "brief": "test brief",
+            "couponType": "money_off",
+            "couponValue": 5,
+            "effectiveAt": int((time.time() - 3600) * 1000),
+            "expiredAt": int((time.time() + 3600 * 24) * 1000),
+            "duration": 0,
+            "quantity": -1,
+            "maxReceived": -1,
+            "unusedLimit": -1,
+            "thresholdPrice": 100,
+            "sentType": 0,
+            "receiveType": 0,
+            "userTag": "tag1,tag2",
+            "returnable": False,
+            "rangeType": 1,
+            "rangeStoreCode": config.STORE1,
+            "rangeValue": "value",
+        }
     """
     __default__ = {
         "method": "post",
@@ -298,39 +294,6 @@ def create_coupon(**kwargs):
             "rangeValue": "value",
         }
     }
-
-# def create_coupon(method="post",
-#                   url=Url.manage_coupon_create,
-#                   headers=MANAGER_HEADERS,
-#                   json={
-#                       "name": "coupon_from_test",
-#                       "brief": "test brief",
-#                       "couponType": "money_off",
-#                       "couponValue": 5,
-#                     #   "effectiveAt": int((time.time() - 3600) * 1000),
-#                     #   "expiredAt": int((time.time() + 3600 * 24) * 1000),
-#                       "duration": 0,
-#                       "quantity": -1,
-#                       "maxReceived": -1,
-#                       "unusedLimit": -1,
-#                       "thresholdPrice": 100,
-#                       "sentType": 0,
-#                       "receiveType": 0,
-#                       "userTag": "tag1,tag2",
-#                       "returnable": False,
-#                       "rangeType": 1,
-#                       "rangeStoreCode": config.STORE1,
-#                       "rangeValue": "value",
-#                   },
-#                   **kwargs):
-#     if isinstance(json, dict):
-#         log.warning(f'#######json#######: {json}')
-#         if 'effectiveAt' not in json:
-#             json['effectiveAt'] = int((time.time() - 3600 * 24) * 1000)
-#         if 'expiredAt' not in json:
-#             json['expiredAt'] = int((time.time() + 3600 * 24) * 1000)
-#     log.warning(f'locals: {locals()}')
-#     return req(locals())
 
 
 @api_wrapper
@@ -439,41 +402,30 @@ def update_coupon(**kwargs):
     }
 
 
-@api_wrapper
-def coupon_list(**kwargs):
-    '''{
-        "method": "get",
-        "url": Url.manage_coupon_list, 
-        "params": {
+def coupon_list(method="GET", headers=None, params=None, **kwargs):
+    '''get coupon list
+
+    :param method: get
+    :param url: Url.manage_coupon_list
+    :param params: {
             "page": 1,
             "size": 20,
             "name": "",
             "couponType": "",
             "status": ""
         }
-    }'''
-
-    __default__ = {
-        "method": "get",
-        "url": Url.manage_coupon_list,
-        "params": {
-        },
-        "headers": MANAGER_HEADERS
-    }
-    for k in ('page', 'pageSize', 'name', 'couponType', 'status'):
-        if (v := kwargs.pop(k, None)) is not None:
-            __default__['params'][k] = v
-    # if (size := kwargs.pop('size', None)) is not None:
-    #     __default__['params']['size'] = size
-    # if (name := kwargs.get('name', None)) is not None:
-    #     __default__['params']['name'] = name
-    # if (couponType := kwargs.get('couponType', None)) is not None:
-    #     __default__['params']['couponType'] = couponType
-    # if (status := kwargs.get('status', None)) is not None:
-    #     __default__['params']['status'] = status
+    '''
+    url = Url.manage_coupon_list
+    if params is None:
+        params = {}
+    if headers is None:
+        headers = MANAGER_HEADERS
+        
+    replace(kwargs, params, headers)
+    append(kwargs, params, ('page', 'pageSize', 'name', 'couponType', 'status'))
+    return request(method=method, url=url, headers=headers, params=params)
 
 
-@api_wrapper
 def manage_coupon_list(**kwargs):
     '''{
         "method": "get",
@@ -510,9 +462,9 @@ def manage_coupon_list(**kwargs):
     #     __default__['params']['status'] = status
 
 
-@api_wrapper
-def user_coupon_list(**kwargs):
-    '''{
+
+def user_coupon_list(method="GET", params=None, **kwargs):
+    '''
         "method": "get",
         "url": Url.coupon_list, 
         "params": {
@@ -522,21 +474,20 @@ def user_coupon_list(**kwargs):
             "status": ""
         }
     }'''
-
-    __default__ = {
-        "method": "get",
-        "url": Url.coupon_list,
-        "params": {
-            "userId": USER_ID,
-        }
-    }
-    for k in ('page', 'pageSize', 'status'):
-        if (v := kwargs.pop(k, None)) is not None:
-            __default__['params'][k] = v
-    # if (size := kwargs.pop('size', None)) is not None:
-    #     __default__['params']['size'] = size
-    # if (status := kwargs.get('status', None)) is not None:
-    #     __default__['params']['status'] = status
+    if params is None:
+        params = {"userId": USER_ID}
+    # __default__ = {
+    #     "method": "get",
+    #     "url": Url.coupon_list,
+    #     "params": {
+    #         "userId": USER_ID,
+    #     }
+    # }
+    replace(kwargs, params)
+    append(kwargs, params, ('page', 'pageSize', 'status'))
+    return request(method=method, url=Url.coupon_list, params=params)
+    
+    
 
 
 @api_wrapper
@@ -708,14 +659,12 @@ def ticket_list(**kwargs):
 def ticket_info():
     pass
 
+def trade_confirmation(method="POST", params=None, json=None, **kwargs):
+    '''trade confirm
 
-@api_wrapper
-def trade_confirmation(**kwargs):
-    '''{
-        "method": "post",
-        "url": Url.trade_confirmation, 
-        "params": {"userId": USER_ID}, 
-        "json": {
+    :param url: Url.trade_confirmation, 
+    :param params: {"userId": USER_ID}, 
+    :param json: {
             "skus": [],
             "coupons": [],
             "disableCoupons": [],
@@ -724,12 +673,10 @@ def trade_confirmation(**kwargs):
             "promotions": [],
             "dry": False
         }
-    }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.trade_confirmation,
-        "params": {"userId": USER_ID},
-        "json": {
+    '''
+    
+    params = {"userId": USER_ID}
+    json = {
             "skus": [],
             "coupons": [],
             "disableCoupons": [],
@@ -738,16 +685,15 @@ def trade_confirmation(**kwargs):
             "promotions": [],
             "dry": False
         }
-    }
+    replace(kwargs, json, params)
+    return request(method=method, url=Url.trade_confirmation, params=params, json=json)
 
 
-@api_wrapper
-def trade_submit(**kwargs):
-    '''{
-        "method": "post",
-        "url": Url.trade_submit, 
-        "params": {"userId": USER_ID}, 
-        "json": {
+
+def trade_submit(method="POST", params=None, json=None, **kwargs):
+    '''trade submit 
+    :param params: {"userId": USER_ID}, 
+    :param json: {
             "skus": [],
             "coupons": [],
             "disableCoupons": [],
@@ -756,12 +702,11 @@ def trade_submit(**kwargs):
             "promotions": [],
             "totalPriceViewed": 0
         }
-    }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.trade_submit,
-        "params": {"userId": USER_ID},
-        "json": {
+    '''
+    if params is None:
+        params = {"userId": USER_ID}
+    if json is None:
+        json ={
             "skus": [],
             "coupons": [],
             "disableCoupons": [],
@@ -770,91 +715,73 @@ def trade_submit(**kwargs):
             "promotions": [],
             "totalPriceViewed": 0
         }
-    }
+    replace(kwargs, json, params)
+    return request(method=method, url=Url.trade_submit, params=params, json=json)
 
 
-@api_wrapper
-def trade_token(**kwargs):
-    '''{
-        "method": "post",
-        "url": Url.trade_token,
-        "params": {"userId": USER_ID},
-        "json": {"tradeNo": '1'}
-    }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.trade_token,
-        "params": {"userId": USER_ID},
-        "json": {"tradeNo": '1'}
-    }
+def trade_token(method='POST', params=None, json=None, **kwargs):
+    '''obtain trade token
+    :param method: "post",
+    :param url: Url.trade_token,
+    :param params: {"userId": USER_ID},
+    :param json: {"tradeNo": '1'}
+    '''
+    if params is None:
+        params = {"userId": USER_ID}
+    if json is None:
+        json = {"tradeNo": '1'}
+    replace(kwargs, json, params)
+    return request(method=method, url=Url.trade_token, params=params, json=json)
 
 
-@api_wrapper
-def trade_detail(**kwargs):
-    '''{
-        "method": "get",
-        "url":Url.trade_detail.format(tradeNO=""), 
-        "params": {
+def trade_detail(method="GET", tradeNo="", params=None, **kwargs):
+    '''
+    :param url: Url.trade_detail.format(tradeNO=""), 
+    :param params: {
             "userId": USER_ID, 
             "token": ""
         }
     }'''
-    tradeNo = kwargs.get('tradeNo', "")
-    __default__ = {
-        "method": "get",
-        "url": Url.trade_detail.format(tradeNO=tradeNo),
-        "params": {
-            "userId": USER_ID,
-            "token": ""
-        }
-    }
+    # tradeNo = kwargs.get('tradeNo', "")
+    url = Url.trade_detail.format(tradeNO=tradeNo)
+    
+    if params is None:
+        params = {"userId": USER_ID}
+    replace(kwargs, params)
+    append(kwargs, params, ("token"))
+    return request(method=method, url=url, params=params)
 
 
-@api_wrapper
-def trade_list(**kwargs):
-    '''{
-        "method": "get",
-        "url": Url.trade_list, 
-        "params":{
-            "userId": USER_ID, 
-            "page":1, 
-            "pageSize": 20
-        }
-    }'''
-    __default__ = {
-        "method": "get",
-        "url": Url.trade_list,
-        "params": {
-            "userId": USER_ID,
-            "page": 1,
-            "pageSize": 20
-        }
-    }
+def trade_list(method="GET", params=None, **kwargs):
+    '''trade list of one
+    :param params: Defaults to {"userId": USER_ID}
+    '''
+    if params is None:
+        params = {"userId": USER_ID,}
+    
+    replace(kwargs, params)
+    append(kwargs, params, ("page", "pageSize"))
+    return request(method=method, url=Url.trade_list, params=params)
 
 
-@api_wrapper
-def trade_cancel(**kwargs):
-    '''{
-        "method": "post",
-        "url": Url.trade_cancel.format(tradeNo=""), 
-        "params": {"userId": USER_ID}
-    }'''
-    tradeNo = kwargs.get("tradeNo", "1")
-    __default__ = {
-        "method": "post",
-        "url": Url.trade_cancel.format(tradeNo=tradeNo),
-        "params": {"userId": USER_ID}
-    }
+def trade_cancel(method="POST", tradeNo="", params=None, **kwargs):
+    '''cancel trade
+    :param url: Url.trade_cancel.format(tradeNo=""), 
+    :param params: {"userId": USER_ID}
+    '''
+    # tradeNo = kwargs.get("tradeNo", "")
+    url = Url.trade_cancel.format(tradeNo=tradeNo)
+    if params is None:
+        params = {"userId": USER_ID}
+    replace(kwargs, params)
+    return request(method=method, url=url, params=params)
 
 
-@api_wrapper
-def pay(**kwargs):
-    __default__ = {
-        "method": "post",
-        "url": Url.pay,
-        "json": {
-            "channel": "",
-            "token": "",
-            "appId": "",
-        }
-    }
+def pay(method="POST", json=None, **kwargs):
+    """
+    :param json: dict {"channel", "token", "appId"}
+    """
+    if json is None:
+        json = {}
+    append(kwargs, json, ("channel", "token", "appId"))
+    return request(method=method, url=Url.pay, json=json)

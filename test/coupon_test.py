@@ -227,8 +227,9 @@ class TestCoupon():
         '''下架优惠券后才能更新
         '''
         # 获取可用sku 价格
-        sku = MallV2.get_cart().json()['data']['skus'][0]
-        Data.update_sku([{"skuId": sku['skuId'], "price": 9900, "originalPrice": 10000}])
+        # sku = MallV2.get_cart().json()['data']['skus'][100]
+        # Data.update_sku([{"skuId": sku['skuId'], "price": 9900, "originalPrice": 10000}])
+        sku = Data.get_skus()[0]
         available_keys = ('storeCode', 'skuId', 'quantity',
                         'ticketCode', 'disablePromotion')
 
@@ -238,7 +239,7 @@ class TestCoupon():
             "thresholdPrice": 1000,
             "couponValue": 1000,
             "rangeType": 1,
-            "rangeStoreCode": tmp["storeCode"],
+            # "rangeStoreCode": tmp["storeCode"],
             "rangeValue": tmp["skuId"],
         }).json()['data']
         MallV2.coupon_shelf(code=coupon['code'], action='on')
@@ -312,7 +313,7 @@ class TestCoupon():
 
 
     def test_coupon_list(self):
-        '''todo 优惠券：获取优惠券列表
+        '''优惠券：获取优惠券列表
         '''
         total = MallV2.user_coupon_list(userId=USER_ID).json()['data']['pagination']['total']
         if total < 10:

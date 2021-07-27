@@ -30,7 +30,7 @@ class TestTradeConfirm():
         
         # 新建sku
         sku = Data.create_product(
-            {"skus": [{"price": 9900, "originalPrice": 10000}]}).json()['data']['skus'][0]
+            {"skus": [{"price": 9900, "originalPrice": 10000}]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         coupon_code = MallV2.create_coupon(**{
@@ -72,7 +72,7 @@ class TestTradeConfirm():
         
         # 新建sku
         sku = Data.create_product(
-            {"skus": [{"price": 9900, "originalPrice": 10000}]}).json()['data']['skus'][0]
+            {"skus": [{"price": 9900, "originalPrice": 10000}]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         coupon_code = MallV2.create_coupon(**{
@@ -114,7 +114,7 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": 9900, "originalPrice": 10000}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         coupon_code = MallV2.create_coupon(**{
@@ -191,7 +191,7 @@ class TestTradeConfirm():
     def test_select_others_coupon(self):
         '''订单确认：使用他人的优惠券 没有优惠
         '''
-        sku = Data.create_product({"skus": [{"price": 9900, "originalPrice": 10000}]}).json()['data']['skus'][0]
+        sku = Data.create_product({"skus": [{"price": 9900, "originalPrice": 10000}]})['skus'][0]
         coupon_code = MallV2.create_coupon(**{
             "thresholdPrice": 1000,
             "couponValue": 1000,
@@ -257,7 +257,7 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         coupon1 = MallV2.create_coupon(**{
@@ -312,7 +312,7 @@ class TestTradeConfirm():
     #     # 新建sku
     #     sku = Data.create_product({"skus": [
     #         {"price": price, "promotionTags": [tag]}
-    #     ]}).json()['data']['skus'][0]
+    #     ]})['skus'][0]
 
     #     # 创建优惠券 上架 用户领取优惠券
     #     coupon1 = MallV2.create_coupon(**{
@@ -351,7 +351,7 @@ class TestTradeConfirm():
         '''storeCode不一致的coupon不能用
         '''
         sku = Data.create_product(
-            {"skus": [{"price": 9900, "originalPrice": 10000}]}).json()['data']['skus'][0]
+            {"skus": [{"price": 9900, "originalPrice": 10000}]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         coupon_code = MallV2.create_coupon(**{
@@ -394,7 +394,7 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": 9900, "originalPrice": 10000, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         
@@ -437,7 +437,7 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "originalPrice": 100000, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         template_available = [
@@ -552,10 +552,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -613,10 +613,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -673,10 +673,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -739,10 +739,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -794,10 +794,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -877,10 +877,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag2]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         template_available = [
@@ -1026,10 +1026,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag2]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         template_available = [
@@ -1097,10 +1097,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag2]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         template_available = [
@@ -1168,10 +1168,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag2]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         template_available = [
@@ -1310,10 +1310,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}, storeCode=STORE2).json()['data']['skus'][0]
+        ]}, storeCode=STORE2)['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         template_available = [
@@ -1430,10 +1430,10 @@ class TestTradeConfirm():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
         MallV2.offer_ticket(ticketId=ticket['id'])
@@ -1503,7 +1503,7 @@ class TestTradeSubmit():
             sku_tags[i] = tags_idx
             skus.append(Data.create_product({"skus": [
                 {"price": prices[i], "promotionTags": [tags[i] for i in tags_idx]}
-            ]}).json()['data']['skus'][0])
+            ]})['skus'][0])
             for j in tags_idx:
                 tag_skus[j].append(i)     
         log.info(f'sku_tags: {sku_tags}')
@@ -1650,7 +1650,7 @@ class TestTradeSubmit():
         tc = TestTradeConfirm()
         tc.test_2_skus_2_of_3_coupons()
         trade = MallV2.trade_submit(**tc.kwargs | {"totalPriceViewed": tc.data['result']['totalPrice']}).json()['data']['trade']
-        r = MallV2.trade_cancel(tradeNo=trade[0], params=None)
+        r = MallV2.trade_cancel(tradeNo=trade[0], params={})
         assert r.status_code == 401
         assert r.json()['status'] == 2401
 
@@ -1685,10 +1685,10 @@ class TestTradeSubmit():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -1766,10 +1766,10 @@ class TestTradeSubmit():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -1822,10 +1822,10 @@ class TestTradeSubmit():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}, storeCode=STORE2).json()['data']['skus'][0]
+        ]}, storeCode=STORE2)['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -1889,10 +1889,10 @@ class TestTradeSubmit():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}, storeCode=STORE2).json()['data']['skus'][0]
+        ]}, storeCode=STORE2)['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -2033,13 +2033,13 @@ class TestPay():
         # 新建sku
         sku = Data.create_product({"skus": [
             {"price": price, "promotionTags": [tag]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag,tag2]}
-        ]}).json()['data']['skus'][0]
+        ]})['skus'][0]
         sku3 = Data.create_product({"skus": [
             {"price": price3, "promotionTags": [tag2]}
-        ]}, storeCode=STORE2).json()['data']['skus'][0]
+        ]}, storeCode=STORE2)['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [

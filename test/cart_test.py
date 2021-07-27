@@ -26,12 +26,14 @@ class TestCartList():
     def test_cart_list_status(self):
         '''购物车：sku状态跟数据库一致
         '''
+        if len(MallV2.get_cart().json()['data']['skus']) < CART_MAXIMUM:
+            TestCartAdd().test_full()
         a = {sku['skuId']: sku['status'] for sku in MallV2.get_cart().json()['data']['skus']}
         # b = [(sku['skuId'],sku['status']) for sku in MallV2.get_cart().json()['data']['skus']]
         # assert a == b
         skuIds =  [sku for sku in a]
         # b = Data.sku_status(skus).json()['data']
-        b = {sku['skuId']: sku['status'] for sku in Data.get_skus(size=200, status=None, skus=','.join(skuIds)).json()['data']}
+        b = {sku['skuId']: sku['status'] for sku in Data.get_skus(limit=200, status=None, skus=skuIds)}
         assert b == a
 
     def test_cart_list_empty(self):
@@ -65,7 +67,7 @@ class TestCartList():
         '''购物车：不传userId查询购物车列表
         '''
         # r = get(Url.cart_list)
-        r = MallV2.get_cart(params=None)
+        r = MallV2.get_cart(params={})
         assert r.status_code == 401
         assert r.json()['status'] == 2401
 
@@ -89,7 +91,7 @@ class TestCartAdd():
             MallV2.remove_cart_item(userId=userId, cartItemIds=to_remove)
             skus = MallV2.get_cart(userId=userId).json()['data']['skus']
         # to_add = Data.create_product().json()['data']['skus']
-        skus300 = [i['skuId'] for i in Data.get_skus(size=300).json()['data']]
+        skus300 = [i['skuId'] for i in Data.get_skus(limit=300)]
         to_add = list(set(skus300) - set([s['skuId']
                       for s in skus]))[:count]
         assert len(to_add) == count
@@ -104,8 +106,14 @@ class TestCartAdd():
     def test_quantity_3(self):
         '''购物车：quantity=3。
         '''
-        sku = Data.get_skus().json()['data'][0]
-        r = MallV2.add_to_cart(skuId=sku['skuId'], quantity=3)
+        skus = MallV2.get_cart().json()['data']['skus']
+        if len(skus) >= CART_MAXIMUM:
+            MallV2.remove_cart_item(cartItemIds=[skus[0]["id"]])
+            skuId = skus[0]["skuId"]
+        else:
+            ss = Data.get_skus(offset=300, status="on_sale")
+            skuId = list({i['skuId'] for i in ss} - {i['skuId'] for i in skus})[0]
+        r = MallV2.add_to_cart(skuId=skuId, quantity=3)
         assert r.status_code == 200
         # {"status":5104,"message":"操作失败了，原因：限购，库存检查失败"}
         assert r.json()['status'] == 5104
@@ -114,7 +122,7 @@ class TestCartAdd():
     def test_quantity_0(self):
         '''添加购物车：quantity=0（走默认1）
         '''
-        skus_400 = {s['skuId'] for s in Data.get_skus(CART_MAXIMUM * 2).json()['data']}
+        skus_400 = {s['skuId'] for s in Data.get_skus(CART_MAXIMUM * 2)}
         cart = MallV2.get_cart().json()['data']['skus']
         if len(cart) >= CART_MAXIMUM:
             ids = [s['id'] for s in random.sample(cart, k=len(cart) - CART_MAXIMUM + 1)]
@@ -130,7 +138,7 @@ class TestCartAdd():
         '''添加购物车：quantity=-1。
         '''
         # {"status":5104,"message":"操作失败了，原因：限购，库存检查失败"}
-        sku = Data.get_skus().json()['data'][0]
+        sku = Data.get_skus()[0]
         r = MallV2.add_to_cart(quantity=-1)
         assert r.status_code == 400
         assert r.json()['status'] == 400
@@ -139,6 +147,8 @@ class TestCartAdd():
         '''	添加购物车，不存在的storeCode
         '''
         # {"status":1000,"message":"商品库不存在。"}
+        if len(skus := MallV2.get_cart().json()['data']['skus']) >= CART_MAXIMUM:
+            MallV2.remove_cart_item(cartItemIds=[skus[1]['id']])
         r = MallV2.add_to_cart(skuId=SKU_ID_NOT_EXIST, storeCode=STORE_NOT_EXIST)
         assert r.status_code == 200
         assert r.json()['status'] == 1000
@@ -149,6 +159,8 @@ class TestCartAdd():
         添加购物车，不存在的skuId
         '''
         # {“status”:404,”message”:”sku not found”}
+        if len(skus := MallV2.get_cart().json()['data']['skus']) >= CART_MAXIMUM:
+            MallV2.remove_cart_item(cartItemIds=[skus[1]['id']])
         r = MallV2.add_to_cart(skuId=SKU_ID_NOT_EXIST)
         assert r.status_code == 200
         assert r.json()['status'] == 404
@@ -170,10 +182,10 @@ class TestCartAdd():
 
     def test_no_userId(self):
         '''
-        添加购物车，不传skuId
+        添加购物车，不传userId
         '''
-        # {“status”:404,”message”:”sku not found”}
-        r = MallV2.add_to_cart(params=None)
+        # {"message": "不合法的请求用户。","status": 2401}
+        r = MallV2.add_to_cart(params={})
         assert r.status_code == 401
         assert r.json()['status'] == 2401
 
@@ -186,7 +198,7 @@ class TestCartAdd():
         if len(skus) >= CART_MAXIMUM:
             ids = [s['id'] for s in random.sample(skus, k=len(skus) - CART_MAXIMUM + 1)]
             MallV2.remove_cart_item(cartItemIds=ids)
-        skus_200 = {s['skuId'] for s in Data.get_skus(size=200).json()['data']}
+        skus_200 = {s['skuId'] for s in Data.get_skus(limit=200)}
         cart = {s['skuId'] for s in MallV2.get_cart().json()['data']['skus']}
         skuId = (skus_200 - cart).pop()
         r = MallV2.add_to_cart(json={
@@ -208,8 +220,7 @@ class TestCartAdd():
                 to_remove[:int(CART_MAXIMUM/2)])
             cart = MallV2.get_cart().json()['data']['skus']
         # r = Data.create_product({"skus": [{}]})
-        skus = list(set([s['skuId'] for s in Data.get_skus(size=CART_MAXIMUM).json()[
-                    'data']]) - set([it['skuId'] for it in cart]))[:int(CART_MAXIMUM/4)]
+        skus = list(set([s['skuId'] for s in Data.get_skus(limit=CART_MAXIMUM)]) - set([it['skuId'] for it in cart]))[:int(CART_MAXIMUM/4)]
 
         ids = []
         for sku in skus:
@@ -243,7 +254,7 @@ class TestCartAdd():
             skus = MallV2.get_cart().json()['data']['skus']
             assert len(skus) == 0
 
-        skus2 = Data.get_skus(300).json()['data']
+        skus2 = Data.get_skus(300)
         for skuId in list(set([s['skuId'] for s in skus2]) - set([s['skuId'] for s in skus]))[:200 - len(skus)]:
             r = MallV2.add_to_cart(skuId=skuId)
             assert r.status_code == 200
@@ -267,7 +278,7 @@ class TestCartAdd():
             skus = MallV2.get_cart().json()['data']['skus'] or []
             assert len(skus) == 0
 
-        skus2 = Data.get_skus(300, 2).json()['data']
+        skus2 = Data.get_skus(300, 2)
         skuIds2 = set([s['skuId'] for s in skus2])
         skuIds = set([s['skuId'] for s in skus])
         log.info(f'{len(skuIds2)}, {len(skuIds)}, 差：{len(skuIds2 - skuIds)}')
@@ -298,7 +309,7 @@ class TestCartUpdate():
         skus = MallV2.get_cart().json()['data']['skus']
 
         if not skus:
-            for sku in Data.get_skus().json()['data']:
+            for sku in Data.get_skus():
                 MallV2.add_to_cart(skuId=sku['skuId'])
             skus = MallV2.get_cart().json()['data']['skus']
 
@@ -342,7 +353,7 @@ class TestCartUpdate():
         skus = MallV2.get_cart().json()['data']['skus']
 
         if not skus:
-            for sku in Data.get_skus().json()['data']:
+            for sku in Data.get_skus():
                 MallV2.add_to_cart(skuId=sku['skuId'])
             skus = MallV2.get_cart().json()['data']['skus']
 
@@ -552,7 +563,7 @@ class TestCartSelect():
 
         skus = MallV2.get_cart().json()['data']['skus'] or []
         if len(skus) < 50:
-            skus = Data.get_skus(100).json()['data']
+            skus = Data.get_skus(100)
             for s in skus:
                 MallV2.add_to_cart(skuId=s['skuId'])
             skus = MallV2.get_cart().json()['data']['skus']
@@ -586,7 +597,7 @@ class TestCartSelect():
         if skus:
             MallV2.remove_cart_item(cartItemIds=[s['id'] for s in skus])
         
-        skus = Data.get_skus(200).json()['data']
+        skus = Data.get_skus(200)
         cart = {}
         for s in skus:
             storeCode = random.choice([STORE1, STORE2, STORE3, STORE4])
@@ -694,7 +705,7 @@ class TestCartRemove():
         '''
         skus = MallV2.get_cart().json()['data']['skus'] or []
         if len(skus) < 100:
-            for skuId in set([s['skuId'] for s in Data.get_skus(50).json()['data']]):
+            for skuId in set([s['skuId'] for s in Data.get_skus(50)]):
                 MallV2.add_to_cart(skuId=skuId)
             skus = MallV2.get_cart().json()['data']['skus']
 
@@ -717,7 +728,7 @@ class TestCartRemove():
 
         skus = MallV2.get_cart().json()['data']['skus']
         if not skus:
-            for sku in Data.get_skus().json()['data']:
+            for sku in Data.get_skus():
                 MallV2.add_to_cart(skuId=sku['skuId'])
             skus = MallV2.get_cart().json()['data']['skus']
         cart_items = [sku['id'] for sku in skus]
@@ -741,7 +752,7 @@ class TestCartRemove():
 
         skus = MallV2.get_cart().json()['data']['skus'] or []
         if not skus:
-            for sku in Data.get_skus().json()['data']:
+            for sku in Data.get_skus():
                 MallV2.add_to_cart(skuId=sku['skuId'])
             skus = MallV2.get_cart().json()['data']['skus'] or []
         cart_items = [sku['id'] for sku in skus]
@@ -759,7 +770,7 @@ class TestCartRemove():
         '''
         carts2 = MallV2.get_cart(userId=USER_ID2).json()['data']['skus']
         if not carts2:
-            for sku in Data.get_skus().json()['data']:
+            for sku in Data.get_skus():
                 MallV2.add_to_cart(skuId=sku['skuId'], userId=USER_ID2)
             carts2 = MallV2.get_cart().json()['data']['skus']
 
@@ -779,7 +790,7 @@ class TestCartRemove():
         if len(cart) > 0:
             MallV2.remove_cart_item(cartItemIds=[s['id'] for s in cart])
 
-        pskus = Data.get_skus(100, page=2).json()['data']
+        pskus = Data.get_skus(100, offset=2)
         for sku in pskus: MallV2.add_to_cart(skuId=sku['skuId'])
         
         skus = MallV2.get_cart().json()['data']['skus'] or []
@@ -791,7 +802,7 @@ class TestCartRemove():
             skus[i]['status'] = status[i % len(status)]
             
         arr = [{"skuId": sku['skuId'], "status": sku['status']} for sku in skus if sku["status"] != "on_sale"]
-        assert Data.update_sku(arr).status_code == 200
+        Data.update_sku(arr)
 
         to_delete_ids = [sku["id"] for sku in skus if sku["status"] != "on_sale"]
 
