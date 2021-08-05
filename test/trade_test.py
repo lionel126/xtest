@@ -1,4 +1,5 @@
 import inspect
+from test.cart_test import TestCartAdd
 import pytest
 from utils import Data, MallV2, MallV2DB, PayAdmin, new_tag, trade_count, Url, areq
 from config import STORE2, STORE3, STORE2, STORE_NOT_EXIST, USER_ID, USER_ID2, STORE1
@@ -7,6 +8,8 @@ from datetime import datetime, timedelta
 import logging
 from collections import defaultdict
 from itertools import combinations
+import copy
+import math
 
 log = logging.getLogger(__file__)
 
@@ -165,7 +168,7 @@ class TestTradeConfirm():
         coupon = [c for c in self.data['coupons'] if c['selected'] is False][0]
         sku = self.data['skus'][0]
         s = {k: v for k,v in sku.items() if k in ('skuId', 'quantity', 'storeCode')}
-        self.kwargs = {"skus": [s], "coupons": [coupon['userCouponId']]}
+        self.kwargs = {"skus": [s], "coupons": [coupon["id"]]}
         r = MallV2.trade_confirmation(**self.kwargs)
         
         assert r.status_code == 200
@@ -1011,7 +1014,7 @@ class TestTradeConfirm():
         assert result['couponDiscount'] == price + price2 * 2 - result['totalPrice']
 
         # 指定coupons
-        userCouponIds = [c['userCouponId'] for c in data['coupons'] if c['selected'] is True]
+        userCouponIds = [c["id"] for c in data['coupons'] if c['selected'] is True]
         r = MallV2.trade_confirmation(** self.kwargs | {"coupons": userCouponIds})
 
 
@@ -1459,6 +1462,13 @@ class TestTradeConfirm():
         assert result['ticketDiscount'] == price + price2 * 2
         self.data = data
 
+    def test_lots_of_skus(self):
+        """大量skus"""
+        TestCartAdd().test_full()
+        
+
+    def test_lots_of_coupons(self):
+        """大量优惠券"""
 
 class TestTradeSubmit():
     '''提交订单
@@ -1598,7 +1608,7 @@ class TestTradeSubmit():
         tc.setup_method()
         getattr(tc, confirm_case_name)()
         # 使用服务端返回的数据来提交订单
-        coupons = [c['userCouponId'] for c in tc.data['coupons'] if c['selected'] is True] if 'coupons' in tc.data else []
+        coupons = [c["id"] for c in tc.data['coupons'] if c['selected'] is True] if 'coupons' in tc.data else []
         # tickets = [t['ticketId'] for t in tc.data['tickets']]  if 'tickets' in tc.data else []
         ka = {"totalPriceViewed": tc.data['result']['totalPrice']} | {"coupons": coupons}
         r = MallV2.trade_submit(**tc.kwargs | ka)
@@ -1672,7 +1682,7 @@ class TestTradeSubmit():
         r = MallV2.trade_cancel(tradeNo=trade[0])
         c = MallV2.user_coupon_list().json()['data']['list']
         # 
-        assert {i['id'] for i in a if i['status']=='available'} == {i['id'] for i in c if i['status']=='available'} | {i['userCouponId'] for i in tc.data['coupons'] if i['selected'] is True}
+        assert {i['id'] for i in a if i['status']=='available'} == {i['id'] for i in c if i['status']=='available'} | {i["id"] for i in tc.data['coupons'] if i['selected'] is True}
         # 取消订单前后 不会修改优惠券
         assert b == c
 
@@ -1752,7 +1762,7 @@ class TestTradeSubmit():
         
 
         consumed = {c['id'] for c in coupons_after_submit if c['status'] == 'consumed'}
-        assert consumed == {c['userCouponId'] for c in self.data['coupons'] if c['selected'] is True}
+        assert consumed == {c["id"] for c in self.data['coupons'] if c['selected'] is True}
         assert {c['id'] for c in coupons_after_submit if c['status'] == 'available'} | consumed == {c['id'] for c in coupons_before_submit if c['status'] == 'available'}
         # assert {c['id'] for c in coupons_after_cancel} == {c['id'] for c in coupons_before_submit}
 
@@ -1802,7 +1812,7 @@ class TestTradeSubmit():
         assert data['result']['totalPrice'] == 0
         assert data['result']['couponDiscount'] == total - data['result']['totalPrice']
     
-        coupons = [c['userCouponId'] for c in data['coupons']]
+        coupons = [c["id"] for c in data['coupons']]
         r = MallV2.trade_submit(**self.kwargs | {"coupons": coupons, "totalPriceViewed": data['result']['totalPrice']})
         trades = r.json()['data']['trade']
         assert len(trades) == 1
@@ -1870,7 +1880,7 @@ class TestTradeSubmit():
         assert result['couponDiscount'] == price + price2 - result['totalPrice']
         # self.data = data
 
-        r = MallV2.trade_submit(**self.kwargs | {"totalPriceViewed": data['result']['totalPrice'], "coupons": [c["userCouponId"] for c in data["coupons"]]})
+        r = MallV2.trade_submit(**self.kwargs | {"totalPriceViewed": data['result']['totalPrice'], "coupons": [c["id"] for c in data["coupons"]]})
         trades = r.json()['data']['trade']
         self.trades = trades
         assert len(trades) == 2
@@ -1880,9 +1890,32 @@ class TestTradeSubmit():
             r = MallV2.trade_detail(tradeNo=tradeNo, token=token)
             assert r.json()['data']['price'] in (0, price2 - 2)
 
+    def test_purchase_restriction(self):
+        """限购2个"""
+        skus = Data.get_skus(limit=201, status="on_sale")
+        cart = [s["skuId"] for s in MallV2.get_cart().json()['data']['skus']]
+        for s in skus:
+            if s["skuId"] not in cart:
+                break
+        r = MallV2.trade_submit(skus=[{
+            "skuId": s["skuId"],
+            "storeCode": STORE1,
+            "quantity": 2
+        }], totalPriceViewed=s["price"]*2)
+        assert r.status_code == 200
+        assert r.json()['status'] == 0
+
+        r = MallV2.trade_submit(skus=[{
+            "skuId": s["skuId"],
+            "storeCode": STORE1,
+            "quantity": 1
+        }], totalPriceViewed=s["price"])
+        assert r.status_code == 200
+        assert r.json()['status'] == 6202
+
     @pytest.mark.asyncio
     async def test_async_submit(self):
-        
+        """同一个用户 并发提交"""
         tag = new_tag()
         price = 99800
         price2 = 99900
@@ -1892,7 +1925,7 @@ class TestTradeSubmit():
         ]})['skus'][0]
         sku2 = Data.create_product({"skus": [
             {"price": price2, "promotionTags": [tag]}
-        ]}, storeCode=STORE2)['skus'][0]
+        ]})['skus'][0]
 
         # 创建优惠券 上架 用户领取优惠券
         templates = [
@@ -1942,18 +1975,100 @@ class TestTradeSubmit():
             "url": Url.trade_submit, 
             "method": "POST", 
             "params": {"userId": USER_ID}, 
-            "json": self.kwargs | {"totalPriceViewed": data['result']['totalPrice'], "coupons": [c["userCouponId"] for c in data["coupons"]]}
+            "json": self.kwargs | {"totalPriceViewed": data['result']['totalPrice'], "coupons": [c["id"] for c in data["coupons"]]}
         }
 
         # 并发数
         concurrency_count = 30
         
-        rst = await areq(concurrency_count, kwargs)            
+        rst = await areq([kwargs] * concurrency_count)
         assert {result.status for result in rst} == {200}
         res_status = [(await result.json())['status'] for result in rst]
         assert res_status.count(0) == 1
         # 6501 获取redis锁失败; 6200 优惠不可用导致价格对不上 下单失败
         assert res_status.count(6200) + res_status.count(6501) == concurrency_count - 1
+
+    @pytest.mark.asyncio
+    async def test_x_user_async_submit(self):
+        """多用户并发提交订单"""
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        userId = 7000    # 起始userId
+        total_reqs = 100  # 并发数
+        reqs_per_user = 3
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]}, storeCode=STORE2)['skus'][0]
+
+        # 创建优惠券 上架 用户领取优惠券
+        # templates = [
+        #     {
+        #         "couponValue": 99800,
+        #         "rangeType": 1,
+        #         "rangeValue": sku["skuId"]
+        #     },
+        #     {
+        #         "couponValue": 2,
+        #         "rangeType": 1,
+        #         "rangeValue": sku2["skuId"],
+        #         "rangeStoreCode": STORE2
+        #     },
+        # ]
+        
+        # for c in templates:    
+        #     coupon = MallV2.create_coupon(**c).json()['data']
+        #     MallV2.coupon_shelf(code=coupon['code'], action='on')
+        #     for i in range(concurrency_count):
+        #         MallV2.receive_coupon(code=coupon['code'], userId=userId+i)
+      
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        s2 = {"skuId": sku2['skuId'], "quantity": 1, "storeCode": STORE2}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2], userId=userId)
+        # for i in range(concurrency_count):
+        r = MallV2.trade_confirmation(**self.kwargs|{"userId": userId})
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        # coupons = data['coupons']
+        # log.info(f"使用的优惠券数：{len([c for c in coupons if c['selected'] is True])}")
+
+        # result = data['result']
+        # assert result['totalPrice'] == price2 - 2
+        # assert result['couponDiscount'] == price + price2 - result['totalPrice']        
+        
+        kwargs = {
+            "url": Url.trade_submit, 
+            "method": "POST", 
+            "params": {"userId": USER_ID}, 
+            "json": self.kwargs | {
+                "totalPriceViewed": data['result']['totalPrice'], 
+                # "coupons": [c["id"] for c in data["coupons"]]
+            }
+        }
+                
+        kwargs_list = [copy.deepcopy(kwargs) for i in range(total_reqs)]
+        for i in range(len(kwargs_list)):
+            kwargs_list[i]["params"]["userId"] = 1000000 + math.floor(i/reqs_per_user)
+
+        rst = await areq(kwargs_list)
+        assert {result.status for result in rst} == {200}
+        res_list = [(await result.json())['status'] for result in rst]
+        assert res_list.count(0) == math.floor(total_reqs / reqs_per_user) * 2 + (total_reqs % reqs_per_user if total_reqs % reqs_per_user < 2 else 2)
+        # 限购2个
+        assert res_list.count(6202) == total_reqs - res_list.count(0)
 
 class TestPay():
     '''pay
@@ -2169,7 +2284,7 @@ class TestPay():
         assert result['couponDiscount'] == price + price2 + price3 - result['totalPrice']
         self.data = data
         
-        r = MallV2.trade_submit(** self.kwargs | {"totalPriceViewed": result["totalPrice"], "coupons": [c['userCouponId'] for c in coupons if c["selected"] is True]})
+        r = MallV2.trade_submit(** self.kwargs | {"totalPriceViewed": result["totalPrice"], "coupons": [c["id"] for c in coupons if c["selected"] is True]})
         trade = r.json()['data']['trade']
         assert len(trade) == 2
         details = []
@@ -2250,12 +2365,12 @@ class TestPay():
         # 10个并发不会导致6500（redis lock）
         concurrency_count = 30
         
-        res = await areq(concurrency_count, {
+        res = await areq([{
             "method": "POST",
             "url": Url.pay,
             "json": payload,
             "params": {"userId": USER_ID}
-        })
+        }] * concurrency_count)
 
         assert {r.status for r in res} == {200}
         res = [await r.json() for r in res]

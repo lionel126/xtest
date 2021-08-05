@@ -124,8 +124,9 @@ class TestTicketOffer():
         {"ticketId": 1, "receives": [{"userId": USER_ID}]},
     ])
     def test_missing_required_params_2(self, json):
-        tc = TestTicketCreate()
-        tc.test_create()
+        """没校验"""
+        # tc = TestTicketCreate()
+        # tc.test_create()
         # r = MallV2.offer_ticket(json={"receives": [{"userId": USER_ID, "count": 1}]})
         r = MallV2.offer_ticket(json=json)
         assert r.status_code == 200

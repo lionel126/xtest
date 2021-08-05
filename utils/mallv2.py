@@ -7,7 +7,8 @@ import logging
 from requests import request
 from utils.utils import replace, append
 from functools import wraps, update_wrapper
-
+import random
+from utils.utils import fake
 
 log = logging.getLogger(__file__)
 MANAGER_HEADERS = {"x-user-id": "1", "x-user-token": "eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.a3b6e825e26f5a87bc2e98a9c8126c7254f0f3d3"}
@@ -179,52 +180,48 @@ def add_to_cart(method="POST", params=None, json=None, **kwargs):
     return request(method=method, url=Url.cart_add, params=params, json=json)
 
 
-@api_wrapper
-def remove_cart_item(**kwargs):
-    '''{
-        "method": "post",
-        "url": Url.cart_remove, 
-        "params":{"userId": userId}, 
-        "json": {
+def remove_cart_item(method="POST", params=None, json=None, **kwargs):
+    '''remove item from cart
+    
+    :param params: {"userId": userId}, 
+    :param json: {
             'cartItemIds': [],
             'isRemoveAllInvalid': False
         }
-    }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.cart_remove,
-        "params": {"userId": USER_ID},
-        "json": {
+    '''
+    if params is None:
+        params = {"userId": USER_ID}
+    if json is None:
+        json = {
             'cartItemIds': [],
             'isRemoveAllInvalid': False
         }
-    }
+    
+    replace(kwargs, json, params)
+    return request(method=method, url=Url.cart_remove, params=params, json=json)
 
 
-@api_wrapper
-def update_cart_item_quantity(**kwargs):
-    '''{
-        "method": "post",
-        "url":Url.cart_update_quantity, 
-        "params": {"userId": USER_ID}, 
-        "json": {
+def update_cart_item_quantity(method="POST", params=None, json=None, **kwargs):
+    '''
+       
+    :param params: {"userId": USER_ID}, 
+    :param json: {
             "cartItemId": 0,
             "quantity": 1
         }
-    }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.cart_update_quantity,
-        "params": {"userId": USER_ID},
-        "json": {
+    '''
+    if params is None:
+        params = {"userId": USER_ID}
+    if json is None:
+        json = {
             "cartItemId": 0,
             "quantity": 1
         }
-    }
+    replace(kwargs, json, params)
+    return request(method=method, url=Url.cart_update_quantity, params=params, json=json)
 
 
-@api_wrapper
-def select_cart_item(**kwargs):
+def select_cart_item(method="POST", params=None, json=None, **kwargs):
     '''{
         "method": "post",
         "url": Url.cart_select, 
@@ -234,24 +231,23 @@ def select_cart_item(**kwargs):
             "selected": True,
         }
     }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.cart_select,
-        "params": {"userId": USER_ID},
-        "json": {
+    if params is None:
+        params = {'userId': USER_ID}
+    if json is None:
+        json = {
             "cartItemIds": [],
             "selected": True,
         }
-    }
+    replace(kwargs, json, params)
+    return request(method=method, url=Url.cart_select, params=params, json=json)
 
 
-@api_wrapper
-def create_coupon(**kwargs):
+def create_coupon(method="POST", headers=None, json=None, **kwargs):
     """create coupon
     :param json: Defaults to {
             "name": "coupon_from_test",
             "brief": "test brief",
-            "couponType": "money_off",
+            "couponType": "money_off" / "percent_off",
             "couponValue": 5,
             "effectiveAt": int((time.time() - 3600) * 1000),
             "expiredAt": int((time.time() + 3600 * 24) * 1000),
@@ -269,17 +265,16 @@ def create_coupon(**kwargs):
             "rangeValue": "value",
         }
     """
-    __default__ = {
-        "method": "post",
-        "headers": MANAGER_HEADERS,
-        "url": Url.manage_coupon_create,
-        "json": {
-            "name": "coupon_from_test",
-            "brief": "test brief",
+    if headers is None:
+        headers = MANAGER_HEADERS.copy()
+    if json is None:
+        json = {
+            "name": fake.text(max_nb_chars=30),
+            "brief": fake.sentence(nb_words=10),
             "couponType": "money_off",
             "couponValue": 5,
             "effectiveAt": int((time.time() - 3600) * 1000),
-            "expiredAt": int((time.time() + 3600 * 24) * 1000),
+            "expiredAt": int((time.time() + 600 + 3600 * 24 * random.randint(0, 7)) * 1000),
             "duration": 0,
             "quantity": -1,
             "maxReceived": -1,
@@ -293,11 +288,11 @@ def create_coupon(**kwargs):
             "rangeStoreCode": config.STORE1,
             "rangeValue": "value",
         }
-    }
+    replace(kwargs, json, headers)
+    return request(method=method, url=Url.manage_coupon_create, headers=headers, json=json)
 
 
-@api_wrapper
-def coupon_shelf(**kwargs):
+def coupon_shelf(method="POST", headers=None, json=None, **kwargs):
     '''{
         "method": "post",
         "url": Url.manage_coupon_shelf, 
@@ -305,54 +300,48 @@ def coupon_shelf(**kwargs):
             "code": "",
             "action": "on"
         }, 
-        "headers": MANAGER_HEADERS
+        "headers": MANAGER_HEADERS.copy()
     }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.manage_coupon_shelf,
-        "json": {
+    if json is None:
+        json = {
             "code": "",
             "action": "on"
-        },
-        "headers": MANAGER_HEADERS
-    }
+        }
+    if headers is None:
+        headers = MANAGER_HEADERS.copy()
+    replace(kwargs, json, headers)
+    return request(method=method, url=Url.manage_coupon_shelf, headers=headers, json=json)
 
 
-@api_wrapper
-def offer_coupon(**kwargs):
-    '''{
-        "method": "post",
-        "url": Url.manage_coupon_offer,
-        "headers": MANAGER_HEADERS,
-        "json": {
+def offer_coupon(method="POST", headers=None, json=None, **kwargs):
+    '''
+    :param headers: MANAGER_HEADERS.copy()
+    :param json: {
             "source": "test",
             "code": "coupon-code",
             "receives": [
                 {"userId": USER_ID, "count": 1}
             ]
         }
-    }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.manage_coupon_offer,
-        "headers": MANAGER_HEADERS,
-        "json": {
+    '''
+    if headers is None:
+        headers = MANAGER_HEADERS.copy()
+    if json is None:
+        json = {
             "source": "test",
             "code": "coupon-code",
             "receives": [
                 {"userId": USER_ID, "count": 1}
             ]
         }
-    }
+    replace(kwargs, json, headers)
+    return request(method=method, url=Url.manage_coupon_offer, headers=headers, json=json)
 
 
-@api_wrapper
-def update_coupon(**kwargs):
-    '''{
-        "method": "post",
-        "url": Url.manage_coupon_update,
-        "headers": MANAGER_HEADERS,
-        "json": {
+def update_coupon(method="POST", headers=None, json=None, **kwargs):
+    '''
+    :param headers: MANAGER_HEADERS.copy()
+    :param json: {
             "id": 0,
             "name": "coupon_from_test",
             "brief": "test brief",
@@ -373,12 +362,11 @@ def update_coupon(**kwargs):
             "rangeStoreCode": config.STORE1,
             "rangeValue": "value",
         }
-    }'''
-    __default__ = {
-        "method": "post",
-        "url": Url.manage_coupon_update,
-        "headers": MANAGER_HEADERS,
-        "json": {
+    '''
+    if headers is None:
+        headers = MANAGER_HEADERS.copy()
+    if json is None:
+        json = {
             "id": 0,
             "name": "coupon_from_test",
             "brief": "test brief",
@@ -399,7 +387,9 @@ def update_coupon(**kwargs):
             "rangeStoreCode": config.STORE1,
             "rangeValue": "value",
         }
-    }
+    replace(kwargs, json, headers)
+    return request(method=method, url=Url.manage_coupon_update, headers=headers, json=json)
+
 
 
 def coupon_list(method="GET", headers=None, params=None, **kwargs):
@@ -419,47 +409,33 @@ def coupon_list(method="GET", headers=None, params=None, **kwargs):
     if params is None:
         params = {}
     if headers is None:
-        headers = MANAGER_HEADERS
+        headers = MANAGER_HEADERS.copy()
         
     replace(kwargs, params, headers)
     append(kwargs, params, ('page', 'pageSize', 'name', 'couponType', 'status'))
     return request(method=method, url=url, headers=headers, params=params)
 
 
-def manage_coupon_list(**kwargs):
-    '''{
-        "method": "get",
-        "url": Url.manage_user_coupon_list, 
-        "params": {
+def manage_coupon_list(method='GET', headers=None, params=None, **kwargs):
+    '''
+    :param params: {
             "page": 1,
-            "size": 20,
+            "pageSize": 20,
             "sourceType": "",
             "userId": "",
             "couponCode": ""
             "status": ""
-        }
+        }, Defaults to {}
     }'''
 
-    __default__ = {
-        "method": "get",
-        "url": Url.manage_user_coupon_list,
-        "params": {
-        },
-        "headers": MANAGER_HEADERS
-    }
-    for k in ('page', 'pageSize', 'sourceType', 'userId', 'couponCode', 'status'):
-        if (v := kwargs.pop(k, None)) is not None:
-            __default__['params'][k] = v
-    # if (size := kwargs.pop('size', None)) is not None:
-    #     __default__['params']['size'] = size
-    # if (sourceType := kwargs.get('sourceType', None)) is not None:
-    #     __default__['params']['sourceType'] = sourceType
-    # if (userId := kwargs.get('userId', None)) is not None:
-    #     __default__['params']['userId'] = userId
-    # if (couponCode := kwargs.get('couponCode', None)) is not None:
-    #     __default__['params']['couponCode'] = couponCode
-    # if (status := kwargs.get('status', None)) is not None:
-    #     __default__['params']['status'] = status
+    if params is None:
+        params = {}
+    if headers is None:
+        headers = MANAGER_HEADERS.copy()
+
+    append(kwargs, params, ('page', 'pageSize', 'sourceType', 'userId', 'couponCode', 'status'))
+    
+    return request(method=method, url=Url.manage_user_coupon_list, headers=headers, params=params)
 
 
 
@@ -487,43 +463,46 @@ def user_coupon_list(method="GET", params=None, **kwargs):
     append(kwargs, params, ('page', 'pageSize', 'status'))
     return request(method=method, url=Url.coupon_list, params=params)
     
-    
 
-
-@api_wrapper
-def coupon_info(**kwargs):
-    '''{
-        "method": "get",
-        "url": Url.coupon_info, 
-        "params": {
+def manage_coupon_info(method="GET", params=None, headers=None, **kwargs):
+    '''
+    :param params: {
             "code": "",
             "version": 0,
             "allVersion": False
         },
-        "headers": MANAGER_HEADERS
-    }'''
-    __default__ = {
-        "method": "get",
-        "url": Url.manage_coupon_info,
-        "params": {
+    :param headers: MANAGER_HEADERS
+    '''
+    if params is None:
+        params = {
             "code": "",
             "version": 0,
             "allVersion": False
-        },
-        "headers": MANAGER_HEADERS
-    }
-
-
-@api_wrapper
-def receive_coupon(**kwargs):
-    __default__ = {
-        "method": "post",
-        "url": Url.coupon_receive,
-        "params": {"userId": USER_ID},
-        "json": {
-            "code": ""
         }
-    }
+    if headers is None:
+        headers = MANAGER_HEADERS.copy()
+    replace(kwargs, params, headers)
+    return request(method=method, url=Url.manage_coupon_info, headers=headers, params=params)
+
+
+def receive_coupon(method="POST", params=None, json=None, **kwargs):
+    """领取优惠券
+    :param params: {"userId": USER_ID}
+    :param json: {"code": ""}
+    """
+    if params is None:
+        params = {"userId": USER_ID}
+
+    if json is None:
+        json = {"code": ""}
+
+    replace(kwargs, json, params)
+    return request(
+        method=method,
+        url=Url.coupon_receive,
+        params=params,
+        json=json
+    )
 
 
 # @api_wrapper
@@ -545,7 +524,7 @@ def receive_coupon(**kwargs):
 #     '''{
 #         "method": "post",
 #         "url": Url.ticket_create,
-#         "headers": MANAGER_HEADERS,
+#         "headers": MANAGER_HEADERS.copy()
 #         "json": {
 #             "name": "test ticket name",
 #             "brief": "test ticket brief",
@@ -559,7 +538,7 @@ def receive_coupon(**kwargs):
 #     __default__ = {
 #         "method": "post",
 #         "url": Url.namage_ticket_create,
-#         "headers": MANAGER_HEADERS,
+#         "headers": MANAGER_HEADERS.copy()
 #         "json": {
 #             "name": "test ticket name",
 #             "brief": "test ticket brief",
@@ -588,7 +567,7 @@ def manage_create_ticket(method='POST', headers=None, json=None, **kwargs):
     """
     url = Url.namage_ticket_create
     if headers is None:
-        headers = MANAGER_HEADERS
+        headers = MANAGER_HEADERS.copy()
     if json is None:
         json = {
             "name": "test ticket name",
@@ -599,39 +578,33 @@ def manage_create_ticket(method='POST', headers=None, json=None, **kwargs):
             "ticketValue": 100,
             "duration": 3600 * 24 * 30 * 1000
         }
-    # for k, v in kwargs.items():
-    #     if k in headers:
-    #         headers[k] = v
-    #     elif k in json:
-    #         json[k] = v
-    #     else:
-    #         log.warning(f'ignored: {k}')
     replace(kwargs, json, headers)
-    # del kwargs
-    # del k, v
-    # print(locals())
-    # return request(**locals())
     return request(method=method, url=url, headers=headers, json=json)
     
 
-
-@api_wrapper
-def offer_ticket(**kwargs):
-    __default__ = {
-        "method": "post",
-        "url": Url.manage_ticket_offer,
-        "headers": MANAGER_HEADERS,
-        "json": {
+def offer_ticket(method="POST", headers=None, json=None, **kwargs):
+    """offer ticket
+    :param json: {
             "ticketId": 0,
             "receives": [
                 {"userId": USER_ID, "count": 1}
             ]
         }
-    }
+    """
+    if headers is None:
+        headers = MANAGER_HEADERS.copy()
+    if json is None:
+        json = {
+            "ticketId": 0,
+            "receives": [
+                {"userId": USER_ID, "count": 1}
+            ]
+        }
+    replace(kwargs, json, headers)
+    return request(method=method, url=Url.manage_ticket_offer, headers=headers, json=json)
 
 
-@api_wrapper
-def ticket_list(**kwargs):
+def ticket_list(method="GET", params=None, **kwargs):
     '''{
         "method": "get",
         "url": Url.ticket_list,
@@ -641,21 +614,15 @@ def ticket_list(**kwargs):
             "pageSize": 20
         }
     }'''
-    __default__ = {
-        "method": "get",
-        "url": Url.ticket_list,
-        "params": {
+    if params is None:
+        params = {
             "userId": USER_ID,
         }
-    }
-    
-    if (page := kwargs.pop('page', None)) is not None:
-        __default__['params']['page'] = page
-    if (size := kwargs.pop('pageSize', None)) is not None:
-        __default__['params']['pageSize'] = size
+    replace(kwargs, params)
+    append(kwargs, params, ("page", "pageSize"))
+    return request(method=method, url=Url.ticket_list, params=params)
 
 
-@api_wrapper
 def ticket_info():
     pass
 
