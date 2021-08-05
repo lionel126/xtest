@@ -106,6 +106,7 @@ class Data():
         return [{
                     "skuId": s["skuId"],
                     "status": s["status"],
+                    "price": s["price"]
                 } for s in r.json()["data"]]
         # return r
         # else:

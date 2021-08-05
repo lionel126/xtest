@@ -332,7 +332,7 @@ class TestCoupon():
     def test_coupon_info(self):
         '''todo
         '''
-        r = MallV2.coupon_info(code='7e68c6343de441b6a96dc131056f9a06', allVersion=True)
+        r = MallV2.manage_coupon_info(code='7e68c6343de441b6a96dc131056f9a06', allVersion=True)
         assert r.status_code == 404
 
 

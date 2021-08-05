@@ -76,3 +76,11 @@ autosummary: 默认不能生成module内的class/funtion等的子页面（比如
 # 重新生成 doc
 <!-- rm -rf build source/modules -->
 rm -rf _build/* _modules/_modules
+
+# 下单
+todo
+
+前提条件
+拿到一个sku：状态(on_sale). 价格=0？限购？
+没有多余的优惠券/ticket 影响最终价格
+

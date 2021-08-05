@@ -6,9 +6,8 @@ session_pay_admin = requests.Session()
 class PayAdmin():
     
     def __init__(self):
-        # if self._get_user().status_code == 403:
-        #     self._login()
-        self._login()
+        if self._get_user().status_code == 403:
+            self._login()
 
     def _get_user(self):
         return session_pay_admin.get(f'{PAY_ADMIN_BASE_URL}/api/current/user')

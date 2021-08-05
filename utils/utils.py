@@ -3,7 +3,9 @@ from aiohttp import ClientSession
 import asyncio
 import logging
 from requests import request
+import faker
 
+fake = faker.Faker(['zh_CN', 'en_US'])
 log = logging.getLogger(__file__)
 
 
@@ -26,11 +28,11 @@ def trade_count(storeCodes):
         s.add(merchant[sc])
     return len(s)
 
-async def areq(concurrency_count, req_kwargs):
+async def areq(req_kwargs_list):
     '''async request
     '''
     async with ClientSession(trust_env=True) as session:
-        task = [session.request(**req_kwargs) for _ in range(concurrency_count)]
+        task = [session.request(**ka) for ka in req_kwargs_list]
         res = await asyncio.gather(*task)
         return res
 
