@@ -7,4 +7,4 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             s += f'{k}: {len(v)}, '
     s = s[:-2]
     with open('.env', 'w') as f:
-        f.write(f'RESULTS="{s}"')
+        f.write(f'RESULTS="{s}"\n')
