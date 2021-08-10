@@ -1,5 +1,6 @@
 import inspect
-from test.cart_test import TestCartAdd
+from test.cart_test import TestCartAdd as CA
+from test.cart_test import TestCartSelect as CS
 import pytest
 from utils import Data, MallV2, MallV2DB, PayAdmin, new_tag, trade_count, Url, areq
 from config import STORE2, STORE3, STORE2, STORE_NOT_EXIST, USER_ID, USER_ID2, STORE1
@@ -1464,8 +1465,14 @@ class TestTradeConfirm():
 
     def test_lots_of_skus(self):
         """大量skus"""
-        TestCartAdd().test_full()
+        CA().test_full()
+        CS().test_batch_select_cart_item(True)
+        r = MallV2.trade_confirmation()
+        self.data = r.json()['data']
+        self.kwargs = {"skus": []}
         
+
+
 
     def test_lots_of_coupons(self):
         """大量优惠券"""

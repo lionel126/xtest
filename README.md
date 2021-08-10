@@ -81,6 +81,6 @@ rm -rf _build/* _modules/_modules
 todo
 
 前提条件
-拿到一个sku：状态(on_sale). 价格=0？限购？
-没有多余的优惠券/ticket 影响最终价格
+sku：状态(on_sale). 价格=0？限购 是否已购买/添加购物车？
+删除多余的优惠券/ticket 影响最终价格计算
 
