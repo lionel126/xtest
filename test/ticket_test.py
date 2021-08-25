@@ -102,11 +102,13 @@ class TestTicketOffer():
     def test_1(self):
         tc = TestTicketCreate()
         tc.test_create()
-        r = MallV2.offer_ticket(ticketId=tc.ticket['id'])
+        r = MallV2.offer_ticket(ticketCode=tc.ticket['code'])
     
     @pytest.mark.parametrize('json', [
-        {"receives": [{"userId": USER_ID, "count": 1}]},
-        {"ticketId": 0, "receives": [{"userId": USER_ID, "count": 1}]},
+        {"receives": [{"userId": USER_ID}]},
+        {"ticketCode": '', "receives": [{"userId": USER_ID}]},
+        {"ticketCode": '1', "receives": [{"userId": ''}]},
+        {"ticketCode": 1, "receives": [{"userId": USER_ID}]},
     ])
     def test_missing_required_params_1(self, json):
         tc = TestTicketCreate()
@@ -117,49 +119,58 @@ class TestTicketOffer():
         assert r.json()['status'] == 400
 
     @pytest.mark.parametrize('json', [
-        {"ticketId": 1, "receives": []},
-        {"ticketId": 1},
-        {"ticketId": 1, "receives": [{"count": 1}]},
-        {"ticketId": 1, "receives": [{"userId": USER_ID, "count": 0}]},
-        {"ticketId": 1, "receives": [{"userId": USER_ID}]},
+        {"ticketCode": '1', "receives": []},
+        {"ticketCode": '1', "receives": [{}]},
+        {"ticketCode": '1'},
     ])
     def test_missing_required_params_2(self, json):
         """没校验"""
-        # tc = TestTicketCreate()
-        # tc.test_create()
+        tc = TestTicketCreate()
+        tc.test_create()
         # r = MallV2.offer_ticket(json={"receives": [{"userId": USER_ID, "count": 1}]})
+        json['ticketCode'] = tc.ticket['code']
         r = MallV2.offer_ticket(json=json)
         assert r.status_code == 200
-        assert r.json()['status'] == 400
+        # assert r.json()['status'] == 400
+
+    @pytest.mark.parametrize('json', [
+        {"ticketCode": '1', "receives": [{"userId": USER_ID, "ticketValue": 1}]},
+        {"ticketCode": '1', "receives": [{"userId": USER_ID, "ticketValue": 0}]},
+        {"ticketCode": '1', "receives": [{"userId": USER_ID}]},
+    ])
+    def test_optional_parameters(self, json):
+        '''todo: available ticket code & 发放成功'''
+        r = MallV2.offer_ticket(json=json)
+        assert r.status_code == 200
 
     def test_not_existed_ticket(self):
         '''bug 发放不存在的ticket'''
         tc = TestTicketCreate()
         tc.test_create()
         MallV2DB.delete_tickets(tickets=[tc.ticket['id']])
-        r = MallV2.offer_ticket(ticketId=tc.ticket['id'])
+        r = MallV2.offer_ticket(ticketCode=tc.ticket['code'])
         MallV2.ticket_list()
-        assert r.status_code == 200
-        assert r.json()['status'] != 0
+        assert r.status_code == 404
+        assert r.json()['status'] == 404
         
     def test_re_offer(self):
         '''todo'''
         tc = TestTicketCreate()
         tc.test_create()
-        r = MallV2.offer_ticket(ticketId=tc.ticket['id'])
-        r = MallV2.offer_ticket(ticketId=tc.ticket['id'])
+        r = MallV2.offer_ticket(ticketCode=tc.ticket['code'])
+        r = MallV2.offer_ticket(ticketCode=tc.ticket['code'])
         MallV2.ticket_list()
 
     @pytest.mark.parametrize('count', [
         2
     ])
     def test_offer_multiple(self, count):
-        '''一次发放<count>个
+        '''todo: 一次发放<count>个
         '''
         total = MallV2.ticket_list().json()['data']['pagination']['total']
         tc = TestTicketCreate()
         tc.test_create()
-        r = MallV2.offer_ticket(ticketId=tc.ticket['id'], receives=[{"userId": USER_ID, "count": count}])
+        r = MallV2.offer_ticket(ticketCode=tc.ticket['code'], receives=[{"userId": USER_ID, "ticketValue": count}])
         
         total2 = MallV2.ticket_list().json()['data']['pagination']['total']
         assert total2 == total + count

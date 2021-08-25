@@ -5,15 +5,18 @@ import config
 from config import USER_ID, STORE1, BASE_URL
 import logging
 from requests import request
-from utils.utils import replace, append
+from utils.utils import replace, append, boss_gateway_token
 from functools import wraps, update_wrapper
 import random
 from utils.utils import fake
 
+MANAGER_HEADERS = {
+    "x-user-id": "1", 
+    # "x-user-token": boss_gateway_token(), # token算法
+    "x-user-token": "eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.72cc72bd0924b2bbe747c1267719ad44359d6cc4"
+}
+
 log = logging.getLogger(__file__)
-MANAGER_HEADERS = {"x-user-id": "1", "x-user-token": "eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.a3b6e825e26f5a87bc2e98a9c8126c7254f0f3d3"}
-
-
 class Url():
     product_detail = BASE_URL + '/api/product/detail'
 
@@ -269,8 +272,8 @@ def create_coupon(method="POST", headers=None, json=None, **kwargs):
         headers = MANAGER_HEADERS.copy()
     if json is None:
         json = {
-            "name": fake.text(max_nb_chars=30),
-            "brief": fake.sentence(nb_words=10),
+            "name": 'ç' + fake.text(max_nb_chars=30),
+            "brief": 'ç' + fake.sentence(nb_words=10),
             "couponType": "money_off",
             "couponValue": 5,
             "effectiveAt": int((time.time() - 3600) * 1000),
@@ -556,8 +559,8 @@ def manage_create_ticket(method='POST', headers=None, json=None, **kwargs):
     :param method: str
     :param headers: dict|None
     :param json: dict|None default {
-            "name": "test ticket name",
-            "brief": "test ticket brief",
+            "name": fake.text(max_nb_chars=30),
+            "brief": fake.sentence(nb_words=10),
             "storeCode": STORE1,
             "promotionTag": "test-ticket-tag",
             "ticketType": "package",
@@ -570,8 +573,10 @@ def manage_create_ticket(method='POST', headers=None, json=None, **kwargs):
         headers = MANAGER_HEADERS.copy()
     if json is None:
         json = {
-            "name": "test ticket name",
-            "brief": "test ticket brief",
+            # "name": "test ticket name",
+            # "brief": "test ticket brief",
+            "name": '†' + fake.text(max_nb_chars=30),
+            "brief": '†' + fake.sentence(nb_words=10),
             "storeCode": STORE1,
             "promotionTag": "test-ticket-tag",
             "ticketType": "package",
@@ -585,9 +590,14 @@ def manage_create_ticket(method='POST', headers=None, json=None, **kwargs):
 def offer_ticket(method="POST", headers=None, json=None, **kwargs):
     """offer ticket
     :param json: {
-            "ticketId": 0,
+            "ticketCode": '',
             "receives": [
-                {"userId": USER_ID, "count": 1}
+                {
+                    "userId": USER_ID, 
+                    # "ticketValue": 0, // optional
+                    # "duration": 0, // optional
+                    # "refId": '' // optional
+                }
             ]
         }
     """
@@ -595,12 +605,20 @@ def offer_ticket(method="POST", headers=None, json=None, **kwargs):
         headers = MANAGER_HEADERS.copy()
     if json is None:
         json = {
-            "ticketId": 0,
+            "ticketCode": '',
             "receives": [
-                {"userId": USER_ID, "count": 1}
+                {
+                    "userId": USER_ID, 
+                    # "ticketValue": 0,
+                    # "duration": 0,
+                    # "refId": ''
+                }
             ]
         }
     replace(kwargs, json, headers)
+    if 'receives' in json:
+        for receiver in json["receives"]:
+            append(kwargs, receiver, ("ticketValue", "duration", "refId"))
     return request(method=method, url=Url.manage_ticket_offer, headers=headers, json=json)
 
 
@@ -632,27 +650,18 @@ def trade_confirmation(method="POST", params=None, json=None, **kwargs):
     :param url: Url.trade_confirmation, 
     :param params: {"userId": USER_ID}, 
     :param json: {
-            "skus": [],
-            "coupons": [],
-            "disableCoupons": [],
-            "disableAllCoupons": False,
+            "skus": [], # None(不传) or []: 购物车选中
+            "coupons": None, # None(不传) 价格计算器自动选coupons; [] 不选coupons
             "disableTicket": False,
-            "promotions": [],
             "dry": False
-        }
+        }, Defaults to {}
     '''
-    
-    params = {"userId": USER_ID}
-    json = {
-            "skus": [],
-            "coupons": [],
-            "disableCoupons": [],
-            "disableAllCoupons": False,
-            "disableTicket": False,
-            "promotions": [],
-            "dry": False
-        }
-    replace(kwargs, json, params)
+    if params is None:
+        params = {"userId": USER_ID}
+    if json is None:
+        json = {}
+    replace(kwargs, params)
+    append(kwargs, json, ("skus", "coupons", "disableTicket", "dry"))
     return request(method=method, url=Url.trade_confirmation, params=params, json=json)
 
 
@@ -662,27 +671,18 @@ def trade_submit(method="POST", params=None, json=None, **kwargs):
     :param params: {"userId": USER_ID}, 
     :param json: {
             "skus": [],
-            "coupons": [],
-            "disableCoupons": [],
-            "disableAllCoupons": False,
+            "coupons": None,
             "disableTicket": False,
-            "promotions": [],
-            "totalPriceViewed": 0
-        }
+            "dry": False,
+            "totalPrice": 0
+        }, Defaults to {}
     '''
     if params is None:
         params = {"userId": USER_ID}
     if json is None:
-        json ={
-            "skus": [],
-            "coupons": [],
-            "disableCoupons": [],
-            "disableAllCoupons": False,
-            "disableTicket": False,
-            "promotions": [],
-            "totalPriceViewed": 0
-        }
-    replace(kwargs, json, params)
+        json ={}
+    replace(kwargs, params)
+    append(kwargs, json, ("skus", "coupons", "disableTicket", "dry", "totalPriceViewed"))
     return request(method=method, url=Url.trade_submit, params=params, json=json)
 
 

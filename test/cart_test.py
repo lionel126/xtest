@@ -361,7 +361,7 @@ class TestCartUpdate():
             f'\n{"before":<15}: {before}\n{"expectation":<15}: {expectation}\n{"after":<15}: {after}')
         for i in range(len(after)):
             assert after[i] == before[i]
-            assert res[i].json()['status'] == 5104, f'{expectation[i][0]}'
+            assert res[i].json()['status'] == 5104
             # >2: {"status":5104,"message":"操作失败了，原因：限购，库存检查失败"}
                 
 

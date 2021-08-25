@@ -1,3 +1,4 @@
+from utils.utils import get_available_channel
 from utils import MallV2, MallV2DB, Search, PayAdmin, Url, areq
 from config import STORE_RESOURCE
 import random
@@ -31,7 +32,8 @@ class TestResourceTrade():
         location = MallV2.trade_token(tradeNo=tradeNo).json()['data']['location']
         token = location.split('/')[-1]
         channels = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']['channelList']
-        channel = channels[random.randint(0, len(channels)-1)]
+        # channel = channels[random.randint(0, len(channels)-1)]
+        channel = get_available_channel(channels)
         payload = {
             "channel": channel['channelCode'],
             "token": token,
@@ -63,7 +65,7 @@ class TestResourceTrade():
     @pytest.mark.asyncio
     async def test_x(self):
         """ """
-        userId = 7000
+        userId = 10007000
         total_reqs = 30
         reqs_per_user = 3
         
