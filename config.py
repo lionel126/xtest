@@ -4,7 +4,7 @@ PAY_ADMIN_BASE_URL = 'https://pay-admin-wkm.vmovier.cc'
 TESTAPI_BASE = 'https://t.vmovier.cc'
 
 
-USER_ID = 10000010
+USER_ID = 10265312
 # USER_ID = 12340006
 USER_ID2 = 11111112
 USER_ID3 = 10006752

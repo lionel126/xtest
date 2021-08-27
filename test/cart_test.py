@@ -213,14 +213,13 @@ class TestCartAdd():
         '''
 
         cart = MallV2.get_cart().json()['data']['skus'] or []
-        # 购物车超过一半 清空
-        if len(cart) > CART_MAXIMUM/2:
-            to_remove = [s['id'] for s in cart]
-            MallV2.remove_cart_item(cartItemIds=
-                to_remove[:int(CART_MAXIMUM/2)])
+        # 测试10个
+        if len(cart) > CART_MAXIMUM - 10:
+            to_remove = [s['id'] for s in cart][:10]
+            MallV2.remove_cart_item(cartItemIds=to_remove)
             cart = MallV2.get_cart().json()['data']['skus']
         # r = Data.create_product({"skus": [{}]})
-        skus = list(set([s['skuId'] for s in Data.get_skus(limit=CART_MAXIMUM)]) - set([it['skuId'] for it in cart]))[:int(CART_MAXIMUM/4)]
+        skus = list(set([s['skuId'] for s in Data.get_skus(limit=CART_MAXIMUM)]) - set([it['skuId'] for it in cart]))[:10]
 
         ids = []
         for sku in skus:
@@ -253,48 +252,36 @@ class TestCartAdd():
         #     MallV2.remove_cart_item(cartItemIds=[s['id'] for s in skus])
         #     skus = MallV2.get_cart().json()['data']['skus']
         #     assert len(skus) == 0
+        if len(skus) < CART_MAXIMUM:
+            skus2 = Data.get_skus(300)
+            for skuId in list(set([s['skuId'] for s in skus2]) - set([s['skuId'] for s in skus]))[:CART_MAXIMUM - len(skus)]:
+                r = MallV2.add_to_cart(skuId=skuId)
+                assert r.status_code == 200
+                assert r.json()['status'] == 0
 
-        skus2 = Data.get_skus(300)
-        for skuId in list(set([s['skuId'] for s in skus2]) - set([s['skuId'] for s in skus]))[:CART_MAXIMUM - len(skus)]:
-            r = MallV2.add_to_cart(skuId=skuId)
-            assert r.status_code == 200
-            assert r.json()['status'] == 0
+            # log.info(f'before: {len(skus)}, loops: {v}, skus2.length: {len(skus)}, set: {len(set([s["skuId"] for s in skus2]))}')
 
-        # log.info(f'before: {len(skus)}, loops: {v}, skus2.length: {len(skus)}, set: {len(set([s["skuId"] for s in skus2]))}')
-
-        res = MallV2.get_cart()
-        assert len(res.json()['data']['skus']) == CART_MAXIMUM
+            skus = MallV2.get_cart().json()['data']['skus']
+        assert len(skus) == CART_MAXIMUM
+        self.skus = skus
 
     
     def test_more_than_full(self):
         '''购物车：满了后再添加
         '''
+        self.test_full()
 
-        skus = MallV2.get_cart().json()['data']['skus'] or []
-        if len(skus) >= CART_MAXIMUM:
-            # 清空
-            log.info(f'cart 满了, 清空')
-            MallV2.remove_cart_item(cartItemIds=[s['id'] for s in skus])
-            skus = MallV2.get_cart().json()['data']['skus'] or []
-            assert len(skus) == 0
-
-        skus2 = Data.get_skus(300, 2)
-        skuIds2 = set([s['skuId'] for s in skus2])
-        skuIds = set([s['skuId'] for s in skus])
+        skus2 = Data.get_skus(210, 300)
+        skuIds2 = {s['skuId'] for s in skus2}
+        skuIds = {s['skuId'] for s in self.skus}
         log.info(f'{len(skuIds2)}, {len(skuIds)}, 差：{len(skuIds2 - skuIds)}')
-        # 确保超出最大值
-        assert len(skuIds2 - skuIds) > CART_MAXIMUM
-        cart_len = len(skuIds)
-        for skuId in skuIds2 - skuIds:
+        # 确保有
+        assert len(skuIds2 - skuIds) > 1
+        for skuId in list(skuIds2 - skuIds)[:10]:
             r = MallV2.add_to_cart(skuId=skuId)
-
             assert r.status_code == 200
-            if cart_len < CART_MAXIMUM:
-                assert r.json()['status'] == 0
-                cart_len += 1
-            else:
-                # {"status":5106,"message":"购物车已满，最多200个"}
-                assert r.json()['status'] == 5106
+            # {"status":5106,"message":"购物车已满，最多200个"}
+            assert r.json()['status'] == 5106
 
         res = MallV2.get_cart()
         assert len(res.json()['data']['skus']) == CART_MAXIMUM
@@ -374,7 +361,7 @@ class TestCartUpdate():
             f'\n{"before":<15}: {before}\n{"expectation":<15}: {expectation}\n{"after":<15}: {after}')
         for i in range(len(after)):
             assert after[i] == before[i]
-            assert res[i].json()['status'] == 5104, f'{expectation[i][0]}'
+            assert res[i].json()['status'] == 5104
             # >2: {"status":5104,"message":"操作失败了，原因：限购，库存检查失败"}
                 
 
@@ -469,10 +456,10 @@ class TestCartSelect():
     '''
 
     @pytest.mark.parametrize('selected',[
+        'random',
+        'reverse',
         True, 
         False,
-        'random',
-        'reverse'
     ])
     def test_select_cart_item(self, selected):
         '''购物车：随机单个购物车商品选中或者取消选中
@@ -492,6 +479,7 @@ class TestCartSelect():
             expectations = [(s['id'], False if s['selected'] else True) for s in skus]
         else:
             expectations = [(s['id'], selected) for s in skus]
+        
         for i in expectations:
             r2 = MallV2.select_cart_item(cartItemIds=[i[0]], selected=i[1])
             assert r2.status_code == 200
@@ -541,39 +529,50 @@ class TestCartSelect():
         assert skus2 == skus
         assert skus4 == skus3
 
-
-    def test_batch_select_cart_item(self):
-        '''购物车：批量反选
-        todo 有可能传空
+    @pytest.mark.parametrize('selected', [
+        'random',
+        'reverse',
+        True, 
+        False
+    ])
+    def test_batch_select_cart_item(self, selected):
+        '''购物车：如果购物车有，批量反选
         '''
 
         skus = MallV2.get_cart().json()['data']['skus'] or []
-        if len(skus) < 50:
-            skus = Data.get_skus(100)
+        
+        expectations = {True:[], False:[]}
+        if selected == 'random':
             for s in skus:
-                MallV2.add_to_cart(skuId=s['skuId'])
-            skus = MallV2.get_cart().json()['data']['skus']
-        if len(set([s['selected'] for s in skus])) < 2:
-            self.test_select_cart_item()
-        before = [(s['id'], s['selected']) for s in skus]
-        log.info(f'before selected: {before}')
-        expectations = [(s['id'], False if s['selected'] else True)
-                        for s in skus]
+                expectations[random.choice((True, False))].append(s['id'])
+        elif selected == 'reverse':
+            for s in skus:
+                expectations[False if s['selected'] else True].append(s['id'])
+        else:
+            for s in skus:
+                expectations[selected].append(s['id'])
 
-        selected_cart_items = [e[0] for e in expectations if e[1]]
-        r2 = MallV2.select_cart_item(cartItemIds=selected_cart_items, selected=True)
-        assert r2.status_code == 200
-        assert r2.json()['status'] == 0
 
-        unselected_cart_items = [e[0] for e in expectations if not e[1]]
-        r4 = MallV2.select_cart_item(cartItemIds=unselected_cart_items, selected=False)
-        assert r4.status_code == 200
-        assert r4.json()['status'] == 0
+        for k, v in expectations.items():
+            if v:
+                r2 = MallV2.select_cart_item(cartItemIds=v, selected=k)
+                assert r2.status_code == 200
+                assert r2.json()['status'] == 0
 
         r3 = MallV2.get_cart()
-        after = [(s['id'], s['selected']) for s in r3.json()['data']['skus']]
-        log.info(f'after selected: {after}')
+        after = {True:[], False:[]}
+        for s in r3.json()['data']['skus']:
+            after[s['selected']].append(s['id'])
+        
+        # 顺序一样？？
         assert after == expectations
+
+
+    def test_full_cart_select(self):
+        TestCartAdd().test_full()
+        for selected in ("random", "reverse", True, False):
+            self.test_batch_select_cart_item(selected)
+
 
     def test_storeCode_after_bulk_select(self):
         '''购物车：批量反选 

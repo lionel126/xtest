@@ -1,3 +1,4 @@
+from utils.utils import get_available_channel
 from utils import MallV2, MallV2DB, Search, PayAdmin, Url, areq
 from config import STORE_RESOURCE
 import random
@@ -5,6 +6,9 @@ import pytest
 import copy
 import math
 import time
+import logging
+
+log = logging.getLogger(__file__)
 
 class TestResourceTrade():
     """
@@ -31,7 +35,8 @@ class TestResourceTrade():
         location = MallV2.trade_token(tradeNo=tradeNo).json()['data']['location']
         token = location.split('/')[-1]
         channels = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']['channelList']
-        channel = channels[random.randint(0, len(channels)-1)]
+        # channel = channels[random.randint(0, len(channels)-1)]
+        channel = get_available_channel(channels)
         payload = {
             "channel": channel['channelCode'],
             "token": token,
@@ -63,8 +68,8 @@ class TestResourceTrade():
     @pytest.mark.asyncio
     async def test_x(self):
         """ """
-        userId = 7000
-        total_reqs = 30
+        userId = 10007000
+        total_reqs = 100
         reqs_per_user = 3
         
         # clear user coupons & tickets
@@ -97,9 +102,8 @@ class TestResourceTrade():
         ] * 3
         for c in coupons:
             code = MallV2.create_coupon(json=c).json()['data']['code']
-            MallV2.coupon_shelf(code=code, action="on")
-            for i in range(math.ceil(total_reqs/reqs_per_user)):
-                MallV2.offer_coupon(code=code, receives=[{"userId": userId + i, "count": 1}])
+            MallV2.coupon_shelf(code=code, action="on")            
+            MallV2.offer_coupon(code=code, receives=[{"userId": userId + i, "count": 1} for i in range(math.ceil(total_reqs/reqs_per_user))])
         
         # skus for trade：one sku each vendor
         tmp, skus = [], []
@@ -118,7 +122,11 @@ class TestResourceTrade():
         for li in tmp:
             skus.append(li[0])
         
-        totalPrice = MallV2.trade_confirmation(userId=userId, skus=skus).json()['data']['result']['totalPrice']
+        ka = {
+            "skus": skus, 
+            "coupons": []
+        }
+        totalPrice = MallV2.trade_confirmation(userId=userId, **ka).json()['data']['result']['totalPrice']
         # MallV2.trade_submit(skus=skus, totalPriceViewed=totalPrice)
         
         kwargs = {
@@ -126,8 +134,8 @@ class TestResourceTrade():
             "url": Url.trade_submit,
             "params": {"userId": userId},
             "json": {
-                "skus": skus,
-                "totalPriceViewed": totalPrice
+                **ka,
+                "totalPriceViewed": totalPrice,
             }
         }
         
@@ -137,3 +145,7 @@ class TestResourceTrade():
             a['params']['userId'] = userId + math.floor(i/reqs_per_user)
             kwargs_list.append(a)
         res = await areq(kwargs_list)
+        status_list = [(await r.json())['status'] for r in res]
+
+        log.info({s: status_list.count(s) for s in set(status_list)})
+        assert status_list.count(0) == math.ceil(total_reqs/reqs_per_user)
