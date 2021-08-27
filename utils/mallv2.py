@@ -41,7 +41,7 @@ class Url():
 
     coupon_receive = BASE_URL + '/intranet/coupon/receive'
     coupon_list = BASE_URL + '/intranet/coupon/list'
-    ticket_list = BASE_URL + '/intranet/userTicket'
+    ticket_list = BASE_URL + '/intranet/user_ticket'
     ticket_info = BASE_URL + '/intranet/userTicket/{id}/info'
 
     trade_confirmation = BASE_URL + '/intranet/trade/confirmation'

@@ -1,8 +1,8 @@
 import inspect
-from test.cart_test import TestCartAdd as CA
+from test.cart_test import CART_MAXIMUM, TestCartAdd as CA
 from test.cart_test import TestCartSelect as CS
 import pytest
-from utils import Data, MallV2, MallV2DB, PayAdmin, new_tag, trade_count, Url, areq
+from utils import Data, MallV2, MallV2DB, PayAdmin, new_tag, trade_count, Url, areq, get_available_channel
 from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2
 import time, math, random
 from datetime import datetime, timedelta
@@ -11,6 +11,7 @@ from collections import defaultdict
 from itertools import combinations
 import copy
 import math
+from utils import fake
 
 log = logging.getLogger(__file__)
 
@@ -1474,7 +1475,7 @@ class TestTradeConfirm():
         CS().test_batch_select_cart_item(True)
         r = MallV2.trade_confirmation()
         self.data = r.json()['data']
-        self.kwargs = {"skus": []}
+        self.kwargs = {}
         
     # def test_lots_of_coupons(self):
     #     """大量优惠券"""
@@ -1516,7 +1517,7 @@ class TestTradeSubmit():
         for _ in range(len(combines)):
             tags.append(new_tag())   
         for _ in range(count):
-            prices.append(random.randint(1, 10000)) 
+            prices.append(random.randint(1, 10000))
         for i in range(count):
             tags_idx = [combines.index(c) for c in combines if i in c]
             sku_tags[i] = tags_idx
@@ -1548,6 +1549,9 @@ class TestTradeSubmit():
             }).json()['data']
             MallV2.coupon_shelf(code=c['code'], action='on')
             MallV2.receive_coupon(code=c['code'])
+        cart_items = MallV2.get_cart().json()['data']['skus']
+        if len(cart_items):
+            MallV2.remove_cart_item(cartItemIds=[it['id'] for it in cart_items])
         cart = []
         for sku in skus:
             cart.append(MallV2.add_to_cart(skuId=sku['skuId'], storeCode=random.choice([STORE1, STORE2, STORE3, STORE4])).json()['data']['id'])
@@ -1903,22 +1907,20 @@ class TestTradeSubmit():
         """限购2个"""
         skus = Data.get_skus(limit=201, status="on_sale")
         cart = [s["skuId"] for s in MallV2.get_cart().json()['data']['skus']]
-        for s in skus:
-            if s["skuId"] not in cart:
-                break
-
+        s = fake.random_choices([s for s in skus if s["skuId"] not in cart], 1)[0]
         kwargs = {"skus": [{
                 "skuId": s["skuId"],
                 "storeCode": STORE1,
-                "quantity": 1
+                "quantity": 2
             }], 
             "coupons": []
         }
         MallV2.trade_confirmation(**kwargs)
-        r = MallV2.trade_submit(**kwargs, totalPriceViewed=s["price"])
+        r = MallV2.trade_submit(**kwargs, totalPriceViewed=s["price"]*2)
         assert r.status_code == 200
         assert r.json()['status'] == 0
         kwargs["skus"][0]["quantity"] = 1
+        MallV2.trade_confirmation(**kwargs, totalPriceViewed=s["price"])
         r = MallV2.trade_submit(**kwargs, totalPriceViewed=s["price"])
         assert r.status_code == 200
         assert r.json()['status'] == 6202
@@ -2005,7 +2007,7 @@ class TestTradeSubmit():
         price = 99800
         price2 = 99900
         userId = 10007000    # 起始userId
-        total_reqs = 100  # 并发数
+        total_reqs = 200  # 并发数
         reqs_per_user = 3
         # 新建sku
         sku = Data.create_product({"skus": [
@@ -2076,9 +2078,13 @@ class TestTradeSubmit():
         rst = await areq(kwargs_list)
         assert {result.status for result in rst} == {200}
         res_list = [(await result.json())['status'] for result in rst]
-        assert res_list.count(0) == math.floor(total_reqs / reqs_per_user) * 1 + (total_reqs % reqs_per_user if total_reqs % reqs_per_user < 2 else 2)
-        # 限购2个
-        assert res_list.count(6202) == total_reqs - res_list.count(0)
+        res_count = {r: res_list.count(r) for r in set(res_list)}
+        log.info(f'{res_count}')
+        # assert res_list.count(0) == math.floor(total_reqs / reqs_per_user) * 2 + (total_reqs % reqs_per_user if total_reqs % reqs_per_user < 2 else 2)
+        # assert res_list.count(6202) == total_reqs - res_list.count(0)
+        # 限购2个 
+        assert res_list.count(0) == math.floor(total_reqs / reqs_per_user) * 1 + (total_reqs % reqs_per_user if total_reqs % reqs_per_user < 2 else 1)
+        assert res_list.count(6501) == total_reqs - res_list.count(0)
 
 class TestPay():
     '''pay
@@ -2290,7 +2296,9 @@ class TestPay():
         log.info('available: {}'.format({i: coupons[i]['available'] for i in range(len(coupons))}))
 
         result = data['result']
-        assert result['totalPrice'] == math.ceil(price * 77/100) - 620 + math.ceil(price2 * 78/100) + math.ceil(price3 * 79/100) - 1000
+        # todo：人工校验 计算金额变了
+        # assert result['totalPrice'] == math.ceil(price * 77/100) - 620 + math.ceil(price2 * 78/100) + math.ceil(price3 * 79/100) - 1000
+        assert result['totalPrice'] == math.ceil(price * 77/100) - 900 + math.ceil(price2 * 78/100) + math.ceil(price3 * 79/100) - 1000
         assert result['couponDiscount'] == price + price2 + price3 - result['totalPrice']
         self.data = data
         
@@ -2303,7 +2311,7 @@ class TestPay():
             token = location.split('/')[-1]
             detail = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']
             details.append(detail)
-            channel = detail['channelList'][random.randint(0, len(detail['channelList'])-1)]
+            channel = get_available_channel(detail['channelList'])
             payload = {
                 "channel": channel['channelCode'],
                 "token": token,

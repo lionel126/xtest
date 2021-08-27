@@ -161,20 +161,30 @@ class TestTicketOffer():
         r = MallV2.offer_ticket(ticketCode=tc.ticket['code'])
         MallV2.ticket_list()
 
-    @pytest.mark.parametrize('count', [
-        2
-    ])
-    def test_offer_multiple(self, count):
-        '''todo: 一次发放<count>个
+    
+    def test_offer_custom_ticketValue(self):
+        '''todo: 排序不是id倒序 不对吧
         '''
+        ticketValue =  2
+
         total = MallV2.ticket_list().json()['data']['pagination']['total']
         tc = TestTicketCreate()
         tc.test_create()
-        r = MallV2.offer_ticket(ticketCode=tc.ticket['code'], receives=[{"userId": USER_ID, "ticketValue": count}])
-        
-        total2 = MallV2.ticket_list().json()['data']['pagination']['total']
-        assert total2 == total + count
-        
+        code = tc.ticket['code']
+
+        r = MallV2.offer_ticket(ticketCode=code, receives=[{"userId": USER_ID}])
+        j = MallV2.ticket_list().json()
+        ticketValue2 = [t for t in j['data']['list'] if t['code'] == code][0]['ticketValue']
+        total2 = j['data']['pagination']['total']
+        assert total2 == total + 1
+        # assert ticketValue2 == ticketValue
+
+        r = MallV2.offer_ticket(ticketCode=code, receives=[{"userId": USER_ID, "ticketValue": ticketValue}])
+        j = MallV2.ticket_list().json()
+        ticketValue3 = [t for t in j['data']['list'] if t['code'] == code][0]['ticketValue']
+        total3 = j['data']['pagination']['total']
+        assert total3 == total2 + 1
+        assert ticketValue3 == ticketValue
 
 class TestTicketUpdate():
     '''todo 更新后 发放原来的ticketid？'''  
@@ -187,10 +197,12 @@ class TestTicketList():
         pageSize 
         列表排序
         '''
-        if total := MallV2.ticket_list().json()['data']['pagination']['total'] < 10:
-            TestTicketOffer().test_offer_multiple(10)
+        if (total := MallV2.ticket_list().json()['data']['pagination']['total']) < 10:
+            for i in range(10): TestTicketOffer().test_1()
+            total2 = MallV2.ticket_list().json()['data']['pagination']['total']
+            assert total2 == total + 10
+            total = total2
 
-        total = MallV2.ticket_list().json()['data']['pagination']['total']
         total_pages = math.ceil(total/3)
         tickets = MallV2.ticket_list(page=total_pages, pageSize=3).json()['data']['list']
         assert len(tickets) == total - 3 * (total_pages - 1)

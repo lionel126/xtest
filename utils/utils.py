@@ -37,31 +37,29 @@ async def areq(req_kwargs_list):
         res = await asyncio.gather(*task)
         return res
 
-
-def varname(v, namespace):
-    for name in namespace:
-        if v is namespace[name]:
-            return name
+# not working for list 
+# def varname(v, namespace):
+#     for name in namespace:
+#         if v is namespace[name]:
+#             return name
 
 def replace(kwargs, *args, dk='$', s=None, flag1=True):
     if s is None:
         s = set()
     for k in list(kwargs):
-        log.info(f'>>>> in loop: {k} of kwargs: {kwargs}')
-        for arg in args:
-            log.info(f'^^^^^^^to update: {dk}.{varname(arg, locals())}.{k}')
+        # log.info(f'>>>> in loop: kwargs.{k}: {kwargs}')
+        for idx, arg in enumerate(args):
             if k in arg:
                 log.info(f'{arg}, {kwargs}')
                 arg[k] = kwargs.pop(k)
-                log.info(f'<<<<<<<<<<args updated: {dk}.{varname(arg, locals())}.{k}')
+                # log.info(f'<<<<<<<<<<args updated: {dk}.{varname(arg, locals())}.{k}')
                 s.add(k)
                 # 不加break 如果有重复的参数 eg: a=1, json={"a":2}, 更新完json后会再更新json内部
                 # break
                 if isinstance(arg[k], dict):
-                    replace(kwargs, arg, dk=f'{dk}.{k}', s=s, flag1=False)
+                    replace(kwargs, arg, dk=f'{dk}[{idx}].{k}', s=s, flag1=False)
     if flag1:
-        log.info(
-            f'args ignored: {set(kwargs.keys()) - s}')
+        log.info(f'args ignored: {set(kwargs.keys()) - s}')
 
 def append(kwargs, d:dict, keys):
     for k, v in kwargs.items():
