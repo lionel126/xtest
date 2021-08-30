@@ -766,8 +766,8 @@ class TestCartRemove():
 
     def test_clear_invalid_cart_item(self):
         '''
-        todo: 购物车：移除无效商品
-        on_sale
+        购物车：移除无效商品
+        on_sale/insufficent
         off_shelf/out_of_stock/404/store_failed
         '''
 
@@ -782,7 +782,7 @@ class TestCartRemove():
         cart_items_ids = [s['id'] for s in skus]
 
         
-        status = ('off_shelf', '404', 'store_failed', 'out_of_stock', 'on_sale')
+        status = ('off_shelf', '404', 'store_failed', 'out_of_stock', 'on_sale', 'insufficent', 'store_vip_only')
         for i in range(len(skus)):
             skus[i]['status'] = status[i % len(status)]
             

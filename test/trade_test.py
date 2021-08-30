@@ -1904,7 +1904,7 @@ class TestTradeSubmit():
             assert r.json()['data']['price'] in (0, price2 - 2)
 
     def test_purchase_restriction(self):
-        """限购2个"""
+        """限购2个: 提示状态码有点问题 """
         skus = Data.get_skus(limit=201, status="on_sale")
         cart = [s["skuId"] for s in MallV2.get_cart().json()['data']['skus']]
         s = fake.random_choices([s for s in skus if s["skuId"] not in cart], 1)[0]
