@@ -371,8 +371,8 @@ def update_coupon(method="POST", headers=None, json=None, **kwargs):
     if json is None:
         json = {
             "id": 0,
-            "name": "coupon_from_test",
-            "brief": "test brief",
+            "name": 'ç' + fake.sentence(nb_words=10),
+            "brief": 'ç' + fake.text(max_nb_chars=30),
             "couponType": "money_off",
             "couponValue": 5,
             "effectiveAt": int((time.time() - 3600) * 1000),
@@ -395,7 +395,7 @@ def update_coupon(method="POST", headers=None, json=None, **kwargs):
 
 
 
-def coupon_list(method="GET", headers=None, params=None, **kwargs):
+def manage_coupon_list(method="GET", headers=None, params=None, **kwargs):
     '''get coupon list
 
     :param method: get
@@ -419,7 +419,7 @@ def coupon_list(method="GET", headers=None, params=None, **kwargs):
     return request(method=method, url=url, headers=headers, params=params)
 
 
-def manage_coupon_list(method='GET', headers=None, params=None, **kwargs):
+def manage_user_coupon_list(method='GET', headers=None, params=None, **kwargs):
     '''
     :param params: {
             "page": 1,
