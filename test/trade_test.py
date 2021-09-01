@@ -29,8 +29,8 @@ class TestTradeConfirm():
         MallV2DB.delete_user_coupons()
         MallV2DB.delete_user_tickets()
 
-    def test_confirm_without_coupon(self):
-        '''确认订单: 单sku+money_off优惠券 不选优惠券
+    def test_automatic_coupon(self):
+        '''确认订单: 单sku+money_off优惠券 不传&自动选择优惠券
         '''
         
         # 新建sku
@@ -50,7 +50,7 @@ class TestTradeConfirm():
         MallV2.receive_coupon(code=coupon_code)
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         self.kwargs = dict(skus=[s])
-        r = MallV2.trade_confirmation(skus=[s])
+        r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
         jsn = r.json()
         assert jsn['status'] == 0
@@ -70,7 +70,44 @@ class TestTradeConfirm():
         assert result['couponDiscount'] == 1000
         self.data = data
         
+    def test_disable_coupon(self):
+        '''确认订单: 单sku+money_off优惠券 不使用优惠券
+        '''
         
+        # 新建sku
+        sku = Data.create_product(
+            {"skus": [{"price": 9900, "originalPrice": 10000}]})['skus'][0]
+
+        # 创建优惠券 上架 用户领取优惠券
+        coupon_code = MallV2.create_coupon(**{
+            "thresholdPrice": 9900,
+            "couponValue": 1000,
+            "rangeType": 1,
+            # "rangeStoreCode": STORE1,
+            "rangeValue": sku["skuId"],
+        }).json()['data']['code']
+
+        MallV2.coupon_shelf(code=coupon_code, action='on')
+        MallV2.receive_coupon(code=coupon_code)
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        self.kwargs = dict(skus=[s], coupons=[])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        skus = data['skus']
+        assert skus[0]['price'] == 9900
+        assert skus[0]['totalPrice'] == 9900        
+        assert len([c for c in data['coupons'] if c['selected'] is True]) == 0
+
+        result = data['result']
+        assert result['totalPrice'] == 9900
+        assert result['couponDiscount'] == 0
+        self.data = data
+    
     def test_threshhold_too_greater(self):
         '''确认订单: sku threshhold太大 不能使用优惠券
         '''
@@ -220,36 +257,6 @@ class TestTradeConfirm():
             assert c['selected'] is False
             if c['rangeValue'] == sku['skuId']:
                 assert c['available'] is True
-
-    def test_disable_all_coupons(self):
-        '''不使用优惠券
-        '''
-        self.test_confirm_without_coupon()
-        # sku = r.json()['data']['skus'][0]
-        # s = {"skuId": sku["skuId"], "quantity": sku["quantity"]}
-
-        self.kwargs = self.kwargs | dict(coupons=[])
-        r = MallV2.trade_confirmation(**self.kwargs)
-        assert r.status_code == 200
-        jsn = r.json()
-        assert jsn['status'] == 0
-
-        data = jsn['data']
-
-        skus = data['skus']
-        assert skus[0]['price'] == 9900
-        assert skus[0]['totalPrice'] == 9900
-
-        for c in [c for c in data['coupons']]:
-            assert c['selected'] is False
-            assert c['available'] is True
-            assert 'referOrders' not in c or c['referOrders'] is None
-
-        result = data['result']
-        assert result['totalPrice'] == 9900
-        assert result['couponDiscount'] == 0   
-        self.data = data
-
 
     def test_promotion_tag(self):
         '''订单确认：promotionTag优惠券 两个money_off 使用优惠大的
@@ -1434,6 +1441,199 @@ class TestTradeConfirm():
         self.data = data
 
     def test_x_skus_1_ticket(self):
+        '''不传ticket 2个sku都自动使用ticket'''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'])
+        MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == 0
+        assert result['ticketDiscount'] == price + price2 * 2
+        self.data = data
+
+    def test_not_enough_ticket(self):
+        '''多个sku ticket不足'''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'], ticketValue=1)
+        MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price + price2
+        assert result['ticketDiscount'] == price2
+        self.data = data
+
+
+    def test_part_of_skus_with_ticket(self):
+        '''部分sku指定不使用ticket
+        '''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'])
+        # MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1, "ticketCode": ""}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, "ticketCode": ticket['code']}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price
+        assert result['ticketDiscount'] == price2 * 2
+        self.data = data
+
+    def test_wrong_ticket(self):
+        '''使用错误的ticket code
+        '''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'])
+        # MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1, "ticketCode": f"{ticket['code']}err"}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, "ticketCode": ticket['code']}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price
+        assert result['ticketDiscount'] == price2 * 2
+        self.data = data
+
+    def test_others_ticket(self):
+        '''使用他人的ticket
+        '''
+        tag = new_tag()
+        tag2 = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag2]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'])
+        ticket2 = MallV2.manage_create_ticket(promotionTag=tag2).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket2['code'], userId=USER_ID2)
+        # MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, "ticketCode": ticket2['code']}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price2 * 2
+        assert result['ticketDiscount'] == price
+        self.data = data
+
+    def test_disable_ticket(self):
+        '''禁用ticket'''
         tag = new_tag()
         price = 99800
         price2 = 99900
@@ -1602,7 +1802,8 @@ class TestTradeSubmit():
         m[0] for m in inspect.getmembers(TestTradeConfirm, predicate=inspect.isfunction) if m[0].startswith('test_') and m[0]!='test_select_others_coupon'
     ])
     def test_all_confirmation(self, confirm_case_name):
-        '''使用价格计算器返回的优惠提交订单
+        '''使用价格计算器的优惠券提交订单
+        ticket？活动？
         '''
         # test_methods = [m[0] for m in inspect.getmembers(TestTradeConfirm, predicate=inspect.isfunction) if m[0].startswith('test_')]
         # for m in test_methods:
@@ -1616,7 +1817,7 @@ class TestTradeSubmit():
             # if m != 'test_x_skus_x_coupons':
             #     continue
 
-        log.info(f'>>>>>>>>> call {confirm_case_name} >>>>>>>>>')
+        # log.info(f'>>>>>>>>> call {confirm_case_name} >>>>>>>>>')
         tc = TestTradeConfirm()
         tc.setup_method()
         getattr(tc, confirm_case_name)()
@@ -1644,7 +1845,7 @@ class TestTradeSubmit():
             # if m != 'test_x_skus_x_coupons':
             #     continue
 
-        log.info(f'>>>>>>>>> call {confirm_case} >>>>>>>>>')
+        # log.info(f'>>>>>>>>> call {confirm_case} >>>>>>>>>')
         tc = TestTradeConfirm()
         tc.setup_method()
         getattr(tc, confirm_case)()

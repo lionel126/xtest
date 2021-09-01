@@ -650,9 +650,17 @@ def trade_confirmation(method="POST", params=None, json=None, **kwargs):
     :param url: Url.trade_confirmation, 
     :param params: {"userId": USER_ID}, 
     :param json: {
-            "skus": [], # None(不传) or []: 购物车选中
-            "coupons": None, # None(不传) 价格计算器自动选coupons; [] 不选coupons
+            "skus": [
+                "storeCode": "", #
+                "skuId": "", #
+                "price": 0, # optional 价格，下单确认（dry:false）时传递，用于下单时辅助校验和商品库的价格是否一致，所见即所得，不传递时不校验，以商品最新价格为准
+                "quantity": 1, # optional
+                "ticketCode": "", # optional
+                "promotionCode": "", # optional
+            ], # None(不传) or []: 购物车选中sku
+            "coupons": None, # None(不传) 价格计算器自动选coupons; [] 不选coupons; [123, 798] 自选优惠券
             "disableTicket": False,
+            "disablePromotion": False, #禁用所有可选活动
             "dry": False
         }, Defaults to {}
     '''

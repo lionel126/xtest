@@ -43,28 +43,41 @@ async def areq(req_kwargs_list):
 #         if v is namespace[name]:
 #             return name
 
-def replace(kwargs, *args, dk='$', s=None, flag1=True):
-    if s is None:
-        s = set()
-    for k in list(kwargs):
-        # log.info(f'>>>> in loop: kwargs.{k}: {kwargs}')
-        for idx, arg in enumerate(args):
-            if k in arg:
-                log.info(f'{arg}, {kwargs}')
-                arg[k] = kwargs.pop(k)
-                # log.info(f'<<<<<<<<<<args updated: {dk}.{varname(arg, locals())}.{k}')
-                s.add(k)
-                # 不加break 如果有重复的参数 eg: a=1, json={"a":2}, 更新完json后会再更新json内部
-                # break
-                if isinstance(arg[k], dict):
-                    replace(kwargs, arg, dk=f'{dk}[{idx}].{k}', s=s, flag1=False)
-    if flag1:
-        log.info(f'args ignored: {set(kwargs.keys()) - s}')
+# def replace(kwargs, *args, dk='$', s=None, flag1=True):
+#     if s is None:
+#         s = set()
+#     for k in list(kwargs):
+#         # log.info(f'>>>> in loop: kwargs.{k}: {kwargs}')
+#         for idx, arg in enumerate(args):
+#             if k in arg:
+#                 # log.info(f'{arg}, {kwargs}')
+#                 # arg[k] = kwargs.pop(k)
+#                 arg[k] = kwargs[k]
+#                 # log.info(f'<<<<<<<<<<args updated: {dk}.{varname(arg, locals())}.{k}')
+#                 s.add(k)
+#                 # 不加break 如果有重复的参数 eg: a=1, json={"a":2}, 更新完json后会再更新json内部
+#                 # break
+#                 if isinstance(arg[k], dict):
+#                     replace(kwargs, arg, dk=f'{dk}[{idx}].{k}', s=s, flag1=False)
+#     # if flag1:
+#     #     log.info(f'args ignored: {set(kwargs.keys()) - s}')
+
+def replace(kwargs, *args):
+    for arg in args:
+        for k in arg:
+            if k in kwargs:
+                arg[k] = kwargs[k]
+            elif isinstance(arg[k], dict):
+                replace(kwargs, arg[k])
+            elif isinstance(arg[k], list):
+                for ar in arg[k]:
+                    replace(kwargs, ar)
 
 def append(kwargs, d:dict, keys):
     for k, v in kwargs.items():
         if k in keys:
-            d.update({k: v})
+            # d.update({k: v})
+            d[k] = v
 
 def get_available_channel(channels:list):
     '''返回开发环境能用的channel'''
@@ -78,6 +91,7 @@ def boss_gateway_token():
     from hashlib import sha1
 
     userInfo = '{ "id": "1", "username": "zhangsan", "nickname": "zhangsan", "email": "zhangsan@xinpianchang.com" }'
-    appSecret = 'ef34b98f9e94dbb57469491148bdeacf7fd5bd59'
+    appSecret = 'ef34b98f9e94dbb57469491148bdeacf7fd5bd59' # dev
+    appSecret = '6732ac43a7f5ddf07135ffb579008b9947cc8a5c' # test
     xUserToken = str(base64.b64encode(bytes(userInfo, 'utf-8')), 'utf-8') + '.' + sha1(bytes(userInfo + '.' + appSecret, 'utf-8')).hexdigest()
     return xUserToken
