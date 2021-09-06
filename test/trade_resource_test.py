@@ -1,4 +1,4 @@
-from utils.utils import get_available_channel
+from utils.utils import get_available_channel, get_logger
 from utils import MallV2, MallV2DB, Search, PayAdmin, Url, areq
 from config import STORE_RESOURCE
 import random
@@ -6,9 +6,8 @@ import pytest
 import copy
 import math
 import time
-import logging
 
-log = logging.getLogger(__file__)
+log = get_logger(__name__)
 
 class TestResourceTrade():
     """

@@ -12,3 +12,4 @@ _templates
 _modules/
 config_local.py
 test.py
+logs

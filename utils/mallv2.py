@@ -2,10 +2,9 @@
 import time
 import sys
 import config
-from config import USER_ID, STORE1, BASE_URL
-import logging
+from config import USER_ID, STORE1, BASE_URL, X_USER_TOKEN
 from requests import request
-from utils.utils import replace, append, boss_gateway_token
+from utils.utils import replace, append, boss_gateway_token, get_logger
 from functools import wraps, update_wrapper
 import random
 from utils.utils import fake
@@ -13,10 +12,10 @@ from utils.utils import fake
 MANAGER_HEADERS = {
     "x-user-id": "1", 
     # "x-user-token": boss_gateway_token(), # token算法
-    "x-user-token": "eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.72cc72bd0924b2bbe747c1267719ad44359d6cc4"
+    "x-user-token": X_USER_TOKEN
 }
 
-log = logging.getLogger(__file__)
+log = get_logger(__name__)
 class Url():
     product_detail = BASE_URL + '/api/product/detail'
 

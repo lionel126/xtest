@@ -2,12 +2,25 @@ from uuid import uuid4
 from aiohttp import ClientSession
 import asyncio
 import logging
+import logging.handlers
 from requests import request
 import faker
 
 fake = faker.Faker(['zh_CN', 'en_US'])
-log = logging.getLogger(__file__)
 
+
+def get_logger(name='root', level=logging.INFO):
+    log_handler = logging.handlers.TimedRotatingFileHandler('logs/mallv2-test.log', when='midnight')
+    formatter = logging.Formatter(
+        '%(asctime)s %(levelname)s %(pathname)s:%(lineno)d %(message)s',
+        '%b %d %H:%M:%S')
+    # formatter.converter = time.gmtime  # if you want UTC time
+    log_handler.setFormatter(formatter)
+    logger = logging.getLogger()
+    logger.addHandler(log_handler)
+    logger.setLevel(level)
+    logger = logging.getLogger(name)
+    return logger
 
 def new_tag():
     return f'tag-{uuid4()}'

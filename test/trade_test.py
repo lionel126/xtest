@@ -6,14 +6,14 @@ from utils import Data, MallV2, MallV2DB, PayAdmin, new_tag, trade_count, Url, a
 from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2
 import time, math, random
 from datetime import datetime, timedelta
-import logging
+from utils.utils import get_logger
 from collections import defaultdict
 from itertools import combinations
 import copy
 import math
 from utils import fake
 
-log = logging.getLogger(__file__)
+log = get_logger(__name__)
 
 class TestTradeConfirm():
     '''订单确认
@@ -32,7 +32,6 @@ class TestTradeConfirm():
     def test_automatic_coupon(self):
         '''确认订单: 单sku+money_off优惠券 不传&自动选择优惠券
         '''
-        
         # 新建sku
         sku = Data.create_product(
             {"skus": [{"price": 9900, "originalPrice": 10000}]})['skus'][0]
@@ -1440,7 +1439,7 @@ class TestTradeConfirm():
         assert result['couponDiscount'] == price + price2 * 2 - result['totalPrice']
         self.data = data
 
-    def test_x_skus_1_ticket(self):
+    def test_2_skus_1_ticket(self):
         '''不传ticket 2个sku都自动使用ticket'''
         tag = new_tag()
         price = 99800
@@ -1475,6 +1474,49 @@ class TestTradeConfirm():
         result = data['result']
         assert result['totalPrice'] == 0
         assert result['ticketDiscount'] == price + price2 * 2
+        self.data = data
+    
+    def test_2_skus_1_ticket_2(self):
+        '''多个sku 指定同一个ticket'''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'], ticketValue=1)
+        MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1,}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, }
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1, "ticketCode": ticket['code']}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, "ticketCode": ticket['code']}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price + price2
+        assert result['ticketDiscount'] == price2
         self.data = data
 
     def test_not_enough_ticket(self):
@@ -1696,7 +1738,8 @@ class TestTradeSubmit():
     @pytest.mark.parametrize('count', [
         3,
         4,
-        5
+        5, # 26 coupons
+        # 10 # 1k+ coupons
     ])
     def test_trade_submit(self, count):
         '''多sku(随机storeCode) 多优惠券组合 下单
@@ -1725,7 +1768,7 @@ class TestTradeSubmit():
                 {"price": prices[i], "promotionTags": [tags[i] for i in tags_idx]}
             ]})['skus'][0])
             for j in tags_idx:
-                tag_skus[j].append(i)     
+                tag_skus[j].append(i)    
         log.info(f'sku_tags: {sku_tags}')
         log.info(f'tag_skus: {tag_skus}')
         for i in range(len(tags)):
@@ -2108,7 +2151,7 @@ class TestTradeSubmit():
         """限购2个: 提示状态码有点问题 """
         skus = Data.get_skus(limit=201, status="on_sale")
         cart = [s["skuId"] for s in MallV2.get_cart().json()['data']['skus']]
-        s = fake.random_choices([s for s in skus if s["skuId"] not in cart], 1)[0]
+        s = fake.random_element([s for s in skus if s["skuId"] not in cart])
         kwargs = {"skus": [{
                 "skuId": s["skuId"],
                 "storeCode": STORE1,
