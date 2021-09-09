@@ -3,7 +3,7 @@ from test.cart_test import CART_MAXIMUM, TestCartAdd as CA
 from test.cart_test import TestCartSelect as CS
 import pytest
 from utils import Data, MallV2, MallV2DB, PayAdmin, new_tag, trade_count, Url, areq, get_available_channel
-from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2
+from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2, PAY_NOTICE_DELAY
 import time, math, random
 from datetime import datetime, timedelta
 from utils.utils import get_logger
@@ -1810,16 +1810,10 @@ class TestTradeSubmit():
             location = MallV2.trade_token(tradeNo=t).json()['data']['location']
             token = location.split('/')[-1]
             channels = MallV2.trade_detail(tradeNo=t, token=token).json()['data']['channelList']
-            channel = channels[random.randint(0, len(channels)-1)]
-            payload = {
-                "channel": channel['channelCode'],
-                "token": token,
-                "appId": channel['appId'],
-                # "openid": "",
-                # "tradeNo": "20210608200447000114",
-                # "totalPrice": 6900
-            }
-            MallV2.pay(**payload)
+            # channel = channels[random.randint(0, len(channels)-1)]
+            channel = get_available_channel(channels, location)
+            
+            MallV2.pay(**channel)
         ss = [{"skuId": sku["skuId"], "quantity": sku["quantity"], "storeCode": sku["storeCode"]} for sku in data['skus']]
         
         d = MallV2.trade_confirmation(skus=ss).json()['data']
@@ -2374,22 +2368,18 @@ class TestPay():
             token = location.split('/')[-1]
             data = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']
             
-            channel = data['channelList'][random.randint(0, len(data['channelList'])-1)]
+            # channel = data['channelList'][random.randint(0, len(data['channelList'])-1)]
+            channel = get_available_channel(data['channelList'], location)
             price = data['price']
-            payload = {
-                "channel": channel['channelCode'],
-                "token": token,
-                "appId": channel['appId'],
-            }
             
-            r = MallV2.pay(**payload).json()
+            r = MallV2.pay(**channel).json()
             if price == 0:
                 assert r['status'] == 6104
             else:
                 assert r['status'] == 0
                 PayAdmin().fix(r['data']['order'])
         # pay admin 后台通知有可能配置延迟通知
-        time.sleep(1)
+        time.sleep(0.5 + PAY_NOTICE_DELAY)
         trade_list = MallV2.trade_list().json()['data']['list']
         l2 = [t['status'] for t in trade_list] 
         log.info(l2)
@@ -2555,13 +2545,8 @@ class TestPay():
             token = location.split('/')[-1]
             detail = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']
             details.append(detail)
-            channel = get_available_channel(detail['channelList'])
-            payload = {
-                "channel": channel['channelCode'],
-                "token": token,
-                "appId": channel['appId'],
-            }
-            r = MallV2.pay(**payload).json()
+            channel = get_available_channel(detail['channelList'], location)
+            r = MallV2.pay(**channel).json()
             assert r['status'] == 0
         
         if (details[0]['orderCount']) == 1:
@@ -2594,13 +2579,9 @@ class TestPay():
         location = MallV2.trade_token(tradeNo=tradeNo).json()['data']['location']
         token = location.split('/')[-1]
         channels = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']['channelList']
-        channel = channels[random.randint(0, len(channels)-1)]
-        payload = {
-            "channel": channel['channelCode'],
-            "token": token,
-            "appId": channel['appId'],
-        }
-        assert MallV2.pay(**payload).json()['status'] == 6104
+        # channel = channels[random.randint(0, len(channels)-1)]
+        channel = get_available_channel(channels, location)
+        assert MallV2.pay(**channel).json()['status'] == 6104
 
     @pytest.mark.asyncio
     async def test_async_pay(self):
@@ -2617,20 +2598,17 @@ class TestPay():
         data = MallV2.trade_detail(tradeNo=trade['tradeNo'], token=token).json()['data']
         assert data['status'] == 'pay_waiting'
         
-        channel = data['channelList'][random.randint(0, len(data['channelList'])-1)]
+        # channel = data['channelList'][random.randint(0, len(data['channelList'])-1)]
+        channel = get_available_channel(data['channelList'], location)
         price = data['price']
-        payload = {
-            "channel": channel['channelCode'],
-            "token": token,
-            "appId": channel['appId'],
-        }
+        
         # 10个并发不会导致6500（redis lock）
         concurrency_count = 30
         
         res = await areq([{
             "method": "POST",
             "url": Url.pay,
-            "json": payload,
+            "json": channel,
             "params": {"userId": USER_ID}
         }] * concurrency_count)
 
@@ -2646,4 +2624,4 @@ class TestPay():
         assert r.status_code == 200
         assert r.json()['data']['status'] == 'succeed'
 
-        assert MallV2.pay(**payload).json()['status'] == 6104
+        assert MallV2.pay(**channel).json()['status'] == 6104

@@ -20,11 +20,7 @@ class TestTicketSale():
         token = location.split('/')[-1]
         channels = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']['channelList']
         # channel = channels[fake.random_int(0, len(channels)-1)]
-        channel = get_available_channel(channels)
-        payload = {
-            "channel": channel['channelCode'],
-            "token": token,
-            "appId": channel['appId'],
-        }
-        r = MallV2.pay(**payload)
+        channel = get_available_channel(channels, location)
+        
+        r = MallV2.pay(**channel)
         PayAdmin().fix(r.json()['data']['order'])

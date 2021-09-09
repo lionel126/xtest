@@ -679,9 +679,12 @@ def trade_submit(method="POST", params=None, json=None, **kwargs):
     :param json: {
             "skus": [],
             "coupons": None,
+            "disableCoupons": [],
             "disableTicket": False,
-            "dry": False,
-            "totalPrice": 0
+            "disableAllCoupons": False,
+            "promotions": [],
+            "cleanCart": false,
+            "totalPriceViewed": 0
         }, Defaults to {}
     '''
     if params is None:
@@ -757,5 +760,5 @@ def pay(method="POST", json=None, **kwargs):
     """
     if json is None:
         json = {}
-    append(kwargs, json, ("channel", "token", "appId"))
+    append(kwargs, json, ("channel", "token", "appId", "returnUrl"))
     return request(method=method, url=Url.pay, json=json)
