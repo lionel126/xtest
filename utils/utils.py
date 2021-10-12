@@ -17,10 +17,9 @@ def get_logger(name='root', level=logging.INFO):
         '%b %d %H:%M:%S')
     # formatter.converter = time.gmtime  # if you want UTC time
     log_handler.setFormatter(formatter)
-    logger = logging.getLogger()
+    logger = logging.getLogger(name)
     logger.addHandler(log_handler)
     logger.setLevel(level)
-    logger = logging.getLogger(name)
     return logger
 
 
