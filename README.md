@@ -5,9 +5,6 @@ python3.9 -m venv .venv
 pip install -r requirements.txt
 
 ## 代理配置
-export http_proxy=http://192.168.8.27:30001; export https_proxy=http://192.168.8.27:30001;
-export REQUESTS_CA_BUNDLE="./tmp/rootCA.crt";
-export SSL_CERT_FILE=./tmp/rootCA.crt;
 export http_proxy=http://192.168.8.27:8000; export https_proxy=http://192.168.8.27:8000;
 export REQUESTS_CA_BUNDLE="./tmp/mitmproxy-ca-cert.pem"; 
 export SSL_CERT_FILE=./tmp/mitmproxy-ca-cert.pem
