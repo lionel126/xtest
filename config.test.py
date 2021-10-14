@@ -19,8 +19,3 @@ STORE_RESOURCE = 'resource'
 STORE5 = STORE_RESOURCE
 STORE_NOT_EXIST = 'store_not_exist_yhnmkijhasdf'
 SKU_ID_NOT_EXIST = 'sku-id-not-exist-izcvkjhqwer'
-
-try:
-    from config_local import *
-except:
-    pass

@@ -534,7 +534,8 @@ class TestTradeConfirm():
         
         
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
-        # time.sleep(10)
+        
+        time.sleep(5) # wait to expire
         self.kwargs = dict(skus=[s])
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
@@ -999,7 +1000,7 @@ class TestTradeConfirm():
       
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1}
-        # time.sleep(10)
+        time.sleep(5)
         self.kwargs = dict(skus=[s, s2])
         # 不指定coupons
         r = MallV2.trade_confirmation(**self.kwargs)
@@ -1075,7 +1076,7 @@ class TestTradeConfirm():
       
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 1, "storeCode": STORE1}
-        # time.sleep(10)
+        time.sleep(5)
         self.kwargs = dict(skus=[s, s2])
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
@@ -1151,6 +1152,7 @@ class TestTradeConfirm():
         # self.kwargs = dict(skus=[s, s2]) | {"coupons": [c['id'] for c in coupons if c['couponValue'] != 1]}
         # 默认会使用-15和-6的券， -1的券因为使用了-15而不可用。 选择-15和-1后 只有-15可用
         self.kwargs = dict(skus=[s, s2]) | {"coupons": [c['id'] for c in coupons if c['couponValue'] != 6]}
+        time.sleep(5)
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
         jsn = r.json()
@@ -1293,7 +1295,7 @@ class TestTradeConfirm():
       
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1}
-        # time.sleep(10)
+        time.sleep(5)
         self.kwargs = dict(skus=[s, s2])
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
@@ -1418,7 +1420,7 @@ class TestTradeConfirm():
       
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE2}
-        # time.sleep(10)
+        time.sleep(5)
         self.kwargs = dict(skus=[s, s2])
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
