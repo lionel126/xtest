@@ -537,6 +537,7 @@ class TestCartSelect():
     ])
     def test_batch_select_cart_item(self, selected):
         '''购物车：如果购物车有，批量反选
+        selected str: random|reverse|on_sale|True/False 
         '''
 
         skus = MallV2.get_cart().json()['data']['skus'] or []
@@ -548,6 +549,9 @@ class TestCartSelect():
         elif selected == 'reverse':
             for s in skus:
                 expectations[False if s['selected'] else True].append(s['id'])
+        elif selected == 'on_sale':
+            for s in skus:
+                expectations[True].append(s['id']) if s['status'] == 'on_sale' else expectations[False].append(s['id'])
         else:
             for s in skus:
                 expectations[selected].append(s['id'])

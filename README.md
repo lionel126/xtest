@@ -6,9 +6,9 @@ pip install -r requirements.txt
 
 ## 代理配置
 export http_proxy=http://192.168.8.27:8000; export https_proxy=http://192.168.8.27:8000;
-export REQUESTS_CA_BUNDLE="./tmp/mitmproxy-ca-cert.pem"; 
-export SSL_CERT_FILE=./tmp/mitmproxy-ca-cert.pem
-<!-- export CURL_CA_BUNDLE="./tmp/mitmproxy-ca-cert.pem"; -->
+export REQUESTS_CA_BUNDLE="./utils/mitmproxy-ca-cert.pem"; 
+export SSL_CERT_FILE=./utils/mitmproxy-ca-cert.pem;
+export CURL_CA_BUNDLE="./utils/mitmproxy-ca-cert.pem";
 # 打印日志
 pytest --log-cli-level=INFO <test-file.py>
 # 符合设计

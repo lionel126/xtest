@@ -1713,11 +1713,32 @@ class TestTradeConfirm():
         assert result['ticketDiscount'] == price + price2 * 2
         self.data = data
 
+    # @pytest.mark.parametrize('select', [
+    #     True,
+    #     False,
+    #     'random',
+    #     'on_sale', 
+    #     'reverse'
+    # ])
+    # def test_lots_of_skus(self, select):
     def test_lots_of_skus(self):
-        """大量skus"""
-        CA().test_full()
-        CS().test_batch_select_cart_item(True)
-        r = MallV2.trade_confirmation()
+        """大量skus: 要求状态 on_sale
+        提交订单用到这个case case有问题不通过"""
+        for _ in range(10):
+            print(f'round: {_}')
+            CA().test_full()
+            CS().test_batch_select_cart_item(True)
+            r = MallV2.trade_confirmation()
+            skus = r.json()['data']['skus']
+            if len([s['status'] for s in skus if s['status'] == 'on_sale']) > 0:
+                print(f"len: {len([s['status'] for s in skus if s['status'] == 'on_sale'])}")
+                break
+            else:
+                print('len: 0, to clear')
+                skus = MallV2.get_cart().json()['data']['skus']
+                MallV2.remove_cart_item(cartItemIds=[sku['id'] for sku in skus])
+
+        CS().test_batch_select_cart_item('on_sale')
         self.data = r.json()['data']
         self.kwargs = {}
         
@@ -1863,13 +1884,14 @@ class TestTradeSubmit():
         # 使用服务端返回的数据来提交订单
         coupons = [c["id"] for c in tc.data['coupons'] if c['selected'] is True] if 'coupons' in tc.data else []
         # tickets = [t['ticketId'] for t in tc.data['tickets']]  if 'tickets' in tc.data else []
+        print(f"confirmation: {len([s for s in tc.data['skus'] if s['status'] == 'on_sale'])}")
         ka = {"totalPriceViewed": tc.data['result']['totalPrice']} | {"coupons": coupons}
         r = MallV2.trade_submit(**tc.kwargs | ka)
         assert r.status_code == 200
         b = r.json()
         assert b['status'] == 0
         if confirm_case_name != 'test_x_store':
-            assert len(b['data']['trade']) == 1
+            assert len(b['data']['trade']) >= 1
 
     @pytest.mark.parametrize('confirm_case', [
         m[0] for m in inspect.getmembers(TestTradeConfirm, predicate=inspect.isfunction) if m[0].startswith('test_')
@@ -2323,6 +2345,7 @@ class TestTradeSubmit():
         # assert res_list.count(0) == math.floor(total_reqs / reqs_per_user) * 2 + (total_reqs % reqs_per_user if total_reqs % reqs_per_user < 2 else 2)
         # assert res_list.count(6202) == total_reqs - res_list.count(0)
         # 限购2个 
+        # 每个用户成功提交一个订单
         assert res_list.count(0) == math.floor(total_reqs / reqs_per_user) * 1 + (total_reqs % reqs_per_user if total_reqs % reqs_per_user < 2 else 1)
         assert res_list.count(6501) == total_reqs - res_list.count(0)
 
@@ -2623,6 +2646,7 @@ class TestPay():
         for o in orders:
             PayAdmin().fix(o)
         r = MallV2.trade_detail(tradeNo=trade['tradeNo'], token=token)
+        time.sleep(3)
         assert r.status_code == 200
         assert r.json()['data']['status'] == 'succeed'
 

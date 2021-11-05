@@ -370,7 +370,7 @@ def update_coupon(method="POST", headers=None, json=None, **kwargs):
     if json is None:
         json = {
             "id": 0,
-            "name": 'ç' + fake.sentence(nb_words=10),
+            "name": 'ç' + fake.text(max_nb_chars=20),
             "brief": 'ç' + fake.text(max_nb_chars=30),
             "couponType": "money_off",
             "couponValue": 5,

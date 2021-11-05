@@ -1,6 +1,6 @@
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
-    """统计测试结果发钉钉"""
+    """统计测试结果写入文件 待jenkins发钉钉"""
     s = ''
     for k, v in terminalreporter.stats.items():
         if k != '':

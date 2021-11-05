@@ -6,7 +6,7 @@ import logging.handlers
 from requests import request
 import faker
 
-fake = faker.Faker(['zh_CN', 'en_US'])
+fake: faker.Faker = faker.Faker(['zh_CN', 'en_US'])
 
 
 def get_logger(name='root', level=logging.INFO):
