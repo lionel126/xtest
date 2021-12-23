@@ -1,4 +1,4 @@
-from utils import MallV2, Data, MallV2DB
+from api import MallV2, Data, MallV2DB
 from config import STORE1, USER_ID
 import pytest
 import math
@@ -139,8 +139,10 @@ class TestTicketOffer():
         {"ticketCode": '1', "receives": [{"userId": USER_ID}]},
     ])
     def test_optional_parameters(self, json):
-        '''todo: available ticket code & 发放成功'''
-        r = MallV2.offer_ticket(json=json)
+        '''可选参数ticketValue不传或者传0 走默认值1'''
+        tc = TestTicketCreate()
+        tc.test_create()
+        r = MallV2.offer_ticket(json=json, ticketCode=tc.ticket['code'])
         assert r.status_code == 200
 
     def test_not_existed_ticket(self):
@@ -163,7 +165,7 @@ class TestTicketOffer():
 
     
     def test_offer_custom_ticketValue(self):
-        '''todo: 排序不是id倒序 不对吧
+        '''todo: 排序的原因 不是id倒序 不对吧？
         '''
         ticketValue =  2
 

@@ -3,7 +3,7 @@
 '''
 import math
 import pytest
-from utils import Data, MallV2
+from api import Data, MallV2
 from config import USER_ID, USER_ID2, STORE1
 import time, random
 
@@ -230,20 +230,20 @@ class TestCoupon():
         # sku = MallV2.get_cart().json()['data']['skus'][100]
         # Data.update_sku([{"skuId": sku['skuId'], "price": 9900, "originalPrice": 10000}])
         sku = Data.get_skus()[0]
-        available_keys = ('storeCode', 'skuId', 'quantity',
-                        'ticketCode', 'disablePromotion')
+        # available_keys = ('storeCode', 'skuId', 'quantity',
+        #                 'ticketCode', 'disablePromotion')
 
-        # tmp = {"cartItemId": sku["id"]}
-        tmp = {k: v for k, v in sku.items() if k in available_keys}
+        # # tmp = {"cartItemId": sku["id"]}
+        # tmp = {k: v for k, v in sku.items() if k in available_keys}
         coupon = MallV2.create_coupon(**{
             "thresholdPrice": 1000,
             "couponValue": 1000,
             "rangeType": 1,
             # "rangeStoreCode": tmp["storeCode"],
-            "rangeValue": tmp["skuId"],
+            "rangeValue": sku["skuId"],
         }).json()['data']
         MallV2.coupon_shelf(code=coupon['code'], action='on')
-        coupon2 = {k: v for k, v in coupon.items() if k in ("id", "code", "name",
+        coupon2 = {k: v for k, v in coupon.items() if k in ("id", "code", "name", "brief",
                                                             "couponType", "effectiveAt", "expiredAt", "thresholdPrice", "rangeValue")}
         coupon2.update({"couponValue": 2000})
         r = MallV2.update_coupon(**coupon2)
@@ -257,6 +257,14 @@ class TestCoupon():
         assert r.status_code == 200
         jsn = r.json()
         assert jsn['status'] == 0
+
+        
+        data = MallV2.manage_coupon_list().json()['data']
+        if (page := math.ceil(data['pagination']['total']/data['pagination']['pageSize'])) != 1:
+            data = MallV2.manage_coupon_list(page=page).json()['data']
+        coupon3 = [c for c in data['list'] if c['code'] == coupon['code']][0]
+        assert coupon3['id'] == coupon['id'] + 1
+        assert coupon3['version'] == coupon['version'] + 1
 
     def test_receive_coupon_off_shelf(self):
         code = MallV2.create_coupon().json()['data']['code']

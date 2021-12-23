@@ -1,6 +1,7 @@
 from requests import delete, get, post
 from config import USER_ID, STORE1, TESTAPI_BASE
 from . import mallv2 as MallV2
+from utils.utils import fake
 
 
 class MallV2DB():
@@ -23,7 +24,9 @@ class MallV2DB():
         return r
 
     @staticmethod
-    def delete_tickets(tickets=[]):
+    def delete_tickets(tickets=None):
+        if tickets is None:
+            tickets = []
         r = delete(MallV2DB._DELETE_TICKETS, json=tickets)
         assert r.status_code == 200
         return r
@@ -90,12 +93,14 @@ class Data():
 
 
     @staticmethod
-    def get_skus(limit=10, offset=0, status='on_sale', storeCode=STORE1, skus=None, **kwargs):
+    def get_skus(limit=10, offset=None, status='on_sale', storeCode=STORE1, skus=None, **kwargs):
         '''default: status = on_sale
         商品库暂时没提供商品列表接口
         预留storeCode 暂时无用。多个mock商品库 实际连接同一个mock服务：相同商品 不同storeCode
         '''
         # if storeCode.startswith('mock'):
+        if offset is None:
+            offset = fake.random_int(0, int(5000/limit)) * limit # 表里sku数量: 5000。 有可能越界
         if status:
             kwargs['status'] = status
         params = {"offset": offset, "limit": limit, **kwargs}

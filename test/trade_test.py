@@ -2,18 +2,18 @@ import inspect
 from test.cart_test import CART_MAXIMUM, TestCartAdd as CA
 from test.cart_test import TestCartSelect as CS
 import pytest
-from utils import Data, MallV2, MallV2DB, PayAdmin, new_tag, trade_count, Url, areq, get_available_channel
-from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2
+from api import Data, MallV2, MallV2DB, PayAdmin, Url
+from utils.utils import areq, get_available_channel, new_tag, trade_count, fake
+from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2, PAY_NOTICE_DELAY
 import time, math, random
 from datetime import datetime, timedelta
-import logging
+from utils.utils import get_logger
 from collections import defaultdict
 from itertools import combinations
 import copy
 import math
-from utils import fake
 
-log = logging.getLogger(__file__)
+log = get_logger(__name__)
 
 class TestTradeConfirm():
     '''订单确认
@@ -29,10 +29,9 @@ class TestTradeConfirm():
         MallV2DB.delete_user_coupons()
         MallV2DB.delete_user_tickets()
 
-    def test_confirm_without_coupon(self):
-        '''确认订单: 单sku+money_off优惠券 不选优惠券
+    def test_automatic_coupon(self):
+        '''确认订单: 单sku+money_off优惠券 不传&自动选择优惠券
         '''
-        
         # 新建sku
         sku = Data.create_product(
             {"skus": [{"price": 9900, "originalPrice": 10000}]})['skus'][0]
@@ -50,7 +49,7 @@ class TestTradeConfirm():
         MallV2.receive_coupon(code=coupon_code)
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         self.kwargs = dict(skus=[s])
-        r = MallV2.trade_confirmation(skus=[s])
+        r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
         jsn = r.json()
         assert jsn['status'] == 0
@@ -70,7 +69,44 @@ class TestTradeConfirm():
         assert result['couponDiscount'] == 1000
         self.data = data
         
+    def test_disable_coupon(self):
+        '''确认订单: 单sku+money_off优惠券 不使用优惠券
+        '''
         
+        # 新建sku
+        sku = Data.create_product(
+            {"skus": [{"price": 9900, "originalPrice": 10000}]})['skus'][0]
+
+        # 创建优惠券 上架 用户领取优惠券
+        coupon_code = MallV2.create_coupon(**{
+            "thresholdPrice": 9900,
+            "couponValue": 1000,
+            "rangeType": 1,
+            # "rangeStoreCode": STORE1,
+            "rangeValue": sku["skuId"],
+        }).json()['data']['code']
+
+        MallV2.coupon_shelf(code=coupon_code, action='on')
+        MallV2.receive_coupon(code=coupon_code)
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        self.kwargs = dict(skus=[s], coupons=[])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        skus = data['skus']
+        assert skus[0]['price'] == 9900
+        assert skus[0]['totalPrice'] == 9900        
+        assert len([c for c in data['coupons'] if c['selected'] is True]) == 0
+
+        result = data['result']
+        assert result['totalPrice'] == 9900
+        assert result['couponDiscount'] == 0
+        self.data = data
+    
     def test_threshhold_too_greater(self):
         '''确认订单: sku threshhold太大 不能使用优惠券
         '''
@@ -220,36 +256,6 @@ class TestTradeConfirm():
             assert c['selected'] is False
             if c['rangeValue'] == sku['skuId']:
                 assert c['available'] is True
-
-    def test_disable_all_coupons(self):
-        '''不使用优惠券
-        '''
-        self.test_confirm_without_coupon()
-        # sku = r.json()['data']['skus'][0]
-        # s = {"skuId": sku["skuId"], "quantity": sku["quantity"]}
-
-        self.kwargs = self.kwargs | dict(coupons=[])
-        r = MallV2.trade_confirmation(**self.kwargs)
-        assert r.status_code == 200
-        jsn = r.json()
-        assert jsn['status'] == 0
-
-        data = jsn['data']
-
-        skus = data['skus']
-        assert skus[0]['price'] == 9900
-        assert skus[0]['totalPrice'] == 9900
-
-        for c in [c for c in data['coupons']]:
-            assert c['selected'] is False
-            assert c['available'] is True
-            assert 'referOrders' not in c or c['referOrders'] is None
-
-        result = data['result']
-        assert result['totalPrice'] == 9900
-        assert result['couponDiscount'] == 0   
-        self.data = data
-
 
     def test_promotion_tag(self):
         '''订单确认：promotionTag优惠券 两个money_off 使用优惠大的
@@ -528,7 +534,8 @@ class TestTradeConfirm():
         
         
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
-        # time.sleep(10)
+        
+        time.sleep(5) # wait to expire
         self.kwargs = dict(skus=[s])
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
@@ -993,7 +1000,7 @@ class TestTradeConfirm():
       
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1}
-        # time.sleep(10)
+        time.sleep(5)
         self.kwargs = dict(skus=[s, s2])
         # 不指定coupons
         r = MallV2.trade_confirmation(**self.kwargs)
@@ -1069,7 +1076,7 @@ class TestTradeConfirm():
       
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 1, "storeCode": STORE1}
-        # time.sleep(10)
+        time.sleep(5)
         self.kwargs = dict(skus=[s, s2])
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
@@ -1145,6 +1152,7 @@ class TestTradeConfirm():
         # self.kwargs = dict(skus=[s, s2]) | {"coupons": [c['id'] for c in coupons if c['couponValue'] != 1]}
         # 默认会使用-15和-6的券， -1的券因为使用了-15而不可用。 选择-15和-1后 只有-15可用
         self.kwargs = dict(skus=[s, s2]) | {"coupons": [c['id'] for c in coupons if c['couponValue'] != 6]}
+        time.sleep(5)
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
         jsn = r.json()
@@ -1287,7 +1295,7 @@ class TestTradeConfirm():
       
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1}
-        # time.sleep(10)
+        time.sleep(5)
         self.kwargs = dict(skus=[s, s2])
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
@@ -1412,7 +1420,7 @@ class TestTradeConfirm():
       
         s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
         s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE2}
-        # time.sleep(10)
+        time.sleep(5)
         self.kwargs = dict(skus=[s, s2])
         r = MallV2.trade_confirmation(**self.kwargs)
         assert r.status_code == 200
@@ -1433,7 +1441,243 @@ class TestTradeConfirm():
         assert result['couponDiscount'] == price + price2 * 2 - result['totalPrice']
         self.data = data
 
-    def test_x_skus_1_ticket(self):
+    def test_2_skus_1_ticket(self):
+        '''不传ticket 2个sku都自动使用ticket'''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'])
+        MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == 0
+        assert result['ticketDiscount'] == price + price2 * 2
+        self.data = data
+    
+    def test_2_skus_1_ticket_2(self):
+        '''多个sku 指定同一个ticket'''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'], ticketValue=1)
+        MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1,}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, }
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1, "ticketCode": ticket['code']}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, "ticketCode": ticket['code']}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price + price2
+        assert result['ticketDiscount'] == price2
+        self.data = data
+
+    def test_not_enough_ticket(self):
+        '''多个sku ticket不足'''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'], ticketValue=1)
+        MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price + price2
+        assert result['ticketDiscount'] == price2
+        self.data = data
+
+
+    def test_part_of_skus_with_ticket(self):
+        '''部分sku指定不使用ticket
+        '''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'])
+        # MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1, "ticketCode": ""}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, "ticketCode": ticket['code']}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price
+        assert result['ticketDiscount'] == price2 * 2
+        self.data = data
+
+    def test_wrong_ticket(self):
+        '''使用错误的ticket code
+        '''
+        tag = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'])
+        # MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1, "ticketCode": f"{ticket['code']}err"}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, "ticketCode": ticket['code']}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price
+        assert result['ticketDiscount'] == price2 * 2
+        self.data = data
+
+    def test_others_ticket(self):
+        '''使用他人的ticket
+        '''
+        tag = new_tag()
+        tag2 = new_tag()
+        price = 99800
+        price2 = 99900
+        # 新建sku
+        sku = Data.create_product({"skus": [
+            {"price": price, "promotionTags": [tag]}
+        ]})['skus'][0]
+        sku2 = Data.create_product({"skus": [
+            {"price": price2, "promotionTags": [tag2]}
+        ]})['skus'][0]
+
+        ticket = MallV2.manage_create_ticket(promotionTag=tag).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket['code'])
+        ticket2 = MallV2.manage_create_ticket(promotionTag=tag2).json()['data']
+        MallV2.offer_ticket(ticketCode=ticket2['code'], userId=USER_ID2)
+        # MallV2.ticket_list()
+
+        s = {"skuId": sku['skuId'], "quantity": 1, "storeCode": STORE1}
+        s2 = {"skuId": sku2['skuId'], "quantity": 2, "storeCode": STORE1, "ticketCode": ticket2['code']}
+        # time.sleep(10)
+        self.kwargs = dict(skus=[s, s2])
+        r = MallV2.trade_confirmation(**self.kwargs)
+        assert r.status_code == 200
+        jsn = r.json()
+        assert jsn['status'] == 0
+
+        data = jsn['data']
+
+        # skus = data['skus']
+        # assert skus[0]['price'] == 9900
+        # assert skus[0]['totalPrice'] == 9900
+
+        result = data['result']
+        assert result['totalPrice'] == price2 * 2
+        assert result['ticketDiscount'] == price
+        self.data = data
+
+    def test_disable_ticket(self):
+        '''禁用ticket'''
         tag = new_tag()
         price = 99800
         price2 = 99900
@@ -1469,11 +1713,32 @@ class TestTradeConfirm():
         assert result['ticketDiscount'] == price + price2 * 2
         self.data = data
 
+    # @pytest.mark.parametrize('select', [
+    #     True,
+    #     False,
+    #     'random',
+    #     'on_sale', 
+    #     'reverse'
+    # ])
+    # def test_lots_of_skus(self, select):
     def test_lots_of_skus(self):
-        """大量skus"""
-        CA().test_full()
-        CS().test_batch_select_cart_item(True)
-        r = MallV2.trade_confirmation()
+        """大量skus: 要求状态 on_sale
+        提交订单用到这个case case有问题不通过"""
+        for _ in range(10):
+            print(f'round: {_}')
+            CA().test_full()
+            CS().test_batch_select_cart_item(True)
+            r = MallV2.trade_confirmation()
+            skus = r.json()['data']['skus']
+            if len([s['status'] for s in skus if s['status'] == 'on_sale']) > 0:
+                print(f"len: {len([s['status'] for s in skus if s['status'] == 'on_sale'])}")
+                break
+            else:
+                print('len: 0, to clear')
+                skus = MallV2.get_cart().json()['data']['skus']
+                MallV2.remove_cart_item(cartItemIds=[sku['id'] for sku in skus])
+
+        CS().test_batch_select_cart_item('on_sale')
         self.data = r.json()['data']
         self.kwargs = {}
         
@@ -1496,7 +1761,8 @@ class TestTradeSubmit():
     @pytest.mark.parametrize('count', [
         3,
         4,
-        5
+        5, # 26 coupons
+        # 10 # 1k+ coupons
     ])
     def test_trade_submit(self, count):
         '''多sku(随机storeCode) 多优惠券组合 下单
@@ -1525,7 +1791,7 @@ class TestTradeSubmit():
                 {"price": prices[i], "promotionTags": [tags[i] for i in tags_idx]}
             ]})['skus'][0])
             for j in tags_idx:
-                tag_skus[j].append(i)     
+                tag_skus[j].append(i)    
         log.info(f'sku_tags: {sku_tags}')
         log.info(f'tag_skus: {tag_skus}')
         for i in range(len(tags)):
@@ -1567,16 +1833,10 @@ class TestTradeSubmit():
             location = MallV2.trade_token(tradeNo=t).json()['data']['location']
             token = location.split('/')[-1]
             channels = MallV2.trade_detail(tradeNo=t, token=token).json()['data']['channelList']
-            channel = channels[random.randint(0, len(channels)-1)]
-            payload = {
-                "channel": channel['channelCode'],
-                "token": token,
-                "appId": channel['appId'],
-                # "openid": "",
-                # "tradeNo": "20210608200447000114",
-                # "totalPrice": 6900
-            }
-            MallV2.pay(**payload)
+            # channel = channels[random.randint(0, len(channels)-1)]
+            channel = get_available_channel(channels, location)
+            
+            MallV2.pay(**channel)
         ss = [{"skuId": sku["skuId"], "quantity": sku["quantity"], "storeCode": sku["storeCode"]} for sku in data['skus']]
         
         d = MallV2.trade_confirmation(skus=ss).json()['data']
@@ -1602,7 +1862,8 @@ class TestTradeSubmit():
         m[0] for m in inspect.getmembers(TestTradeConfirm, predicate=inspect.isfunction) if m[0].startswith('test_') and m[0]!='test_select_others_coupon'
     ])
     def test_all_confirmation(self, confirm_case_name):
-        '''使用价格计算器返回的优惠提交订单
+        '''使用价格计算器的优惠券提交订单
+        ticket？活动？
         '''
         # test_methods = [m[0] for m in inspect.getmembers(TestTradeConfirm, predicate=inspect.isfunction) if m[0].startswith('test_')]
         # for m in test_methods:
@@ -1616,20 +1877,21 @@ class TestTradeSubmit():
             # if m != 'test_x_skus_x_coupons':
             #     continue
 
-        log.info(f'>>>>>>>>> call {confirm_case_name} >>>>>>>>>')
+        # log.info(f'>>>>>>>>> call {confirm_case_name} >>>>>>>>>')
         tc = TestTradeConfirm()
         tc.setup_method()
         getattr(tc, confirm_case_name)()
         # 使用服务端返回的数据来提交订单
         coupons = [c["id"] for c in tc.data['coupons'] if c['selected'] is True] if 'coupons' in tc.data else []
         # tickets = [t['ticketId'] for t in tc.data['tickets']]  if 'tickets' in tc.data else []
+        print(f"confirmation: {len([s for s in tc.data['skus'] if s['status'] == 'on_sale'])}")
         ka = {"totalPriceViewed": tc.data['result']['totalPrice']} | {"coupons": coupons}
         r = MallV2.trade_submit(**tc.kwargs | ka)
         assert r.status_code == 200
         b = r.json()
         assert b['status'] == 0
         if confirm_case_name != 'test_x_store':
-            assert len(b['data']['trade']) == 1
+            assert len(b['data']['trade']) >= 1
 
     @pytest.mark.parametrize('confirm_case', [
         m[0] for m in inspect.getmembers(TestTradeConfirm, predicate=inspect.isfunction) if m[0].startswith('test_')
@@ -1644,7 +1906,7 @@ class TestTradeSubmit():
             # if m != 'test_x_skus_x_coupons':
             #     continue
 
-        log.info(f'>>>>>>>>> call {confirm_case} >>>>>>>>>')
+        # log.info(f'>>>>>>>>> call {confirm_case} >>>>>>>>>')
         tc = TestTradeConfirm()
         tc.setup_method()
         getattr(tc, confirm_case)()
@@ -1904,10 +2166,10 @@ class TestTradeSubmit():
             assert r.json()['data']['price'] in (0, price2 - 2)
 
     def test_purchase_restriction(self):
-        """限购2个"""
+        """限购2个: 提示状态码有点问题 """
         skus = Data.get_skus(limit=201, status="on_sale")
         cart = [s["skuId"] for s in MallV2.get_cart().json()['data']['skus']]
-        s = fake.random_choices([s for s in skus if s["skuId"] not in cart], 1)[0]
+        s = fake.random_element([s for s in skus if s["skuId"] not in cart])
         kwargs = {"skus": [{
                 "skuId": s["skuId"],
                 "storeCode": STORE1,
@@ -2083,6 +2345,7 @@ class TestTradeSubmit():
         # assert res_list.count(0) == math.floor(total_reqs / reqs_per_user) * 2 + (total_reqs % reqs_per_user if total_reqs % reqs_per_user < 2 else 2)
         # assert res_list.count(6202) == total_reqs - res_list.count(0)
         # 限购2个 
+        # 每个用户成功提交一个订单
         assert res_list.count(0) == math.floor(total_reqs / reqs_per_user) * 1 + (total_reqs % reqs_per_user if total_reqs % reqs_per_user < 2 else 1)
         assert res_list.count(6501) == total_reqs - res_list.count(0)
 
@@ -2130,22 +2393,18 @@ class TestPay():
             token = location.split('/')[-1]
             data = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']
             
-            channel = data['channelList'][random.randint(0, len(data['channelList'])-1)]
+            # channel = data['channelList'][random.randint(0, len(data['channelList'])-1)]
+            channel = get_available_channel(data['channelList'], location)
             price = data['price']
-            payload = {
-                "channel": channel['channelCode'],
-                "token": token,
-                "appId": channel['appId'],
-            }
             
-            r = MallV2.pay(**payload).json()
+            r = MallV2.pay(**channel).json()
             if price == 0:
                 assert r['status'] == 6104
             else:
                 assert r['status'] == 0
                 PayAdmin().fix(r['data']['order'])
         # pay admin 后台通知有可能配置延迟通知
-        time.sleep(1)
+        time.sleep(0.5 + PAY_NOTICE_DELAY)
         trade_list = MallV2.trade_list().json()['data']['list']
         l2 = [t['status'] for t in trade_list] 
         log.info(l2)
@@ -2311,13 +2570,8 @@ class TestPay():
             token = location.split('/')[-1]
             detail = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']
             details.append(detail)
-            channel = get_available_channel(detail['channelList'])
-            payload = {
-                "channel": channel['channelCode'],
-                "token": token,
-                "appId": channel['appId'],
-            }
-            r = MallV2.pay(**payload).json()
+            channel = get_available_channel(detail['channelList'], location)
+            r = MallV2.pay(**channel).json()
             assert r['status'] == 0
         
         if (details[0]['orderCount']) == 1:
@@ -2350,13 +2604,9 @@ class TestPay():
         location = MallV2.trade_token(tradeNo=tradeNo).json()['data']['location']
         token = location.split('/')[-1]
         channels = MallV2.trade_detail(tradeNo=tradeNo, token=token).json()['data']['channelList']
-        channel = channels[random.randint(0, len(channels)-1)]
-        payload = {
-            "channel": channel['channelCode'],
-            "token": token,
-            "appId": channel['appId'],
-        }
-        assert MallV2.pay(**payload).json()['status'] == 6104
+        # channel = channels[random.randint(0, len(channels)-1)]
+        channel = get_available_channel(channels, location)
+        assert MallV2.pay(**channel).json()['status'] == 6104
 
     @pytest.mark.asyncio
     async def test_async_pay(self):
@@ -2373,20 +2623,17 @@ class TestPay():
         data = MallV2.trade_detail(tradeNo=trade['tradeNo'], token=token).json()['data']
         assert data['status'] == 'pay_waiting'
         
-        channel = data['channelList'][random.randint(0, len(data['channelList'])-1)]
+        # channel = data['channelList'][random.randint(0, len(data['channelList'])-1)]
+        channel = get_available_channel(data['channelList'], location)
         price = data['price']
-        payload = {
-            "channel": channel['channelCode'],
-            "token": token,
-            "appId": channel['appId'],
-        }
+        
         # 10个并发不会导致6500（redis lock）
         concurrency_count = 30
         
         res = await areq([{
             "method": "POST",
             "url": Url.pay,
-            "json": payload,
+            "json": channel,
             "params": {"userId": USER_ID}
         }] * concurrency_count)
 
@@ -2399,7 +2646,8 @@ class TestPay():
         for o in orders:
             PayAdmin().fix(o)
         r = MallV2.trade_detail(tradeNo=trade['tradeNo'], token=token)
+        time.sleep(3)
         assert r.status_code == 200
         assert r.json()['data']['status'] == 'succeed'
 
-        assert MallV2.pay(**payload).json()['status'] == 6104
+        assert MallV2.pay(**channel).json()['status'] == 6104

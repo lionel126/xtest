@@ -2,10 +2,9 @@
 import time
 import sys
 import config
-from config import USER_ID, STORE1, BASE_URL
-import logging
+from config import USER_ID, STORE1, BASE_URL, X_USER_TOKEN
 from requests import request
-from utils.utils import replace, append, boss_gateway_token
+from utils.utils import replace, append, boss_gateway_token, get_logger
 from functools import wraps, update_wrapper
 import random
 from utils.utils import fake
@@ -13,10 +12,10 @@ from utils.utils import fake
 MANAGER_HEADERS = {
     "x-user-id": "1", 
     # "x-user-token": boss_gateway_token(), # token算法
-    "x-user-token": "eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.72cc72bd0924b2bbe747c1267719ad44359d6cc4"
+    "x-user-token": X_USER_TOKEN
 }
 
-log = logging.getLogger(__file__)
+log = get_logger(__name__)
 class Url():
     product_detail = BASE_URL + '/api/product/detail'
 
@@ -371,8 +370,8 @@ def update_coupon(method="POST", headers=None, json=None, **kwargs):
     if json is None:
         json = {
             "id": 0,
-            "name": "coupon_from_test",
-            "brief": "test brief",
+            "name": 'ç' + fake.text(max_nb_chars=20),
+            "brief": 'ç' + fake.text(max_nb_chars=30),
             "couponType": "money_off",
             "couponValue": 5,
             "effectiveAt": int((time.time() - 3600) * 1000),
@@ -395,7 +394,7 @@ def update_coupon(method="POST", headers=None, json=None, **kwargs):
 
 
 
-def coupon_list(method="GET", headers=None, params=None, **kwargs):
+def manage_coupon_list(method="GET", headers=None, params=None, **kwargs):
     '''get coupon list
 
     :param method: get
@@ -419,7 +418,7 @@ def coupon_list(method="GET", headers=None, params=None, **kwargs):
     return request(method=method, url=url, headers=headers, params=params)
 
 
-def manage_coupon_list(method='GET', headers=None, params=None, **kwargs):
+def manage_user_coupon_list(method='GET', headers=None, params=None, **kwargs):
     '''
     :param params: {
             "page": 1,
@@ -650,9 +649,17 @@ def trade_confirmation(method="POST", params=None, json=None, **kwargs):
     :param url: Url.trade_confirmation, 
     :param params: {"userId": USER_ID}, 
     :param json: {
-            "skus": [], # None(不传) or []: 购物车选中
-            "coupons": None, # None(不传) 价格计算器自动选coupons; [] 不选coupons
+            "skus": [
+                "storeCode": "", #
+                "skuId": "", #
+                "price": 0, # optional 价格，下单确认（dry:false）时传递，用于下单时辅助校验和商品库的价格是否一致，所见即所得，不传递时不校验，以商品最新价格为准
+                "quantity": 1, # optional
+                "ticketCode": "", # optional
+                "promotionCode": "", # optional
+            ], # None(不传) or []: 购物车选中sku
+            "coupons": None, # None(不传) 价格计算器自动选coupons; [] 不选coupons; [123, 798] 自选优惠券
             "disableTicket": False,
+            "disablePromotion": False, #禁用所有可选活动
             "dry": False
         }, Defaults to {}
     '''
@@ -672,9 +679,12 @@ def trade_submit(method="POST", params=None, json=None, **kwargs):
     :param json: {
             "skus": [],
             "coupons": None,
+            "disableCoupons": [],
             "disableTicket": False,
-            "dry": False,
-            "totalPrice": 0
+            "disableAllCoupons": False,
+            "promotions": [],
+            "cleanCart": false,
+            "totalPriceViewed": 0
         }, Defaults to {}
     '''
     if params is None:
@@ -750,5 +760,5 @@ def pay(method="POST", json=None, **kwargs):
     """
     if json is None:
         json = {}
-    append(kwargs, json, ("channel", "token", "appId"))
+    append(kwargs, json, ("channel", "token", "appId", "returnUrl"))
     return request(method=method, url=Url.pay, json=json)

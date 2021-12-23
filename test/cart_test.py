@@ -1,13 +1,13 @@
-from utils.mallv2_data import MallV2DB
+from api.mallv2_data import MallV2DB
 import pytest
 import random
 import math
-import logging
 from config import STORE1, STORE3, STORE4, STORE_NOT_EXIST, SKU_ID_NOT_EXIST, USER_ID, USER_ID2, USER_ID3, STORE2
-from utils import Data, MallV2, mallv2
+from api import Data, MallV2, mallv2
+from utils.utils import get_logger
 import time
 
-log = logging.getLogger('cart_test')
+log = get_logger(__name__)
 
 # 购物车上限200
 CART_MAXIMUM = 200
@@ -537,6 +537,7 @@ class TestCartSelect():
     ])
     def test_batch_select_cart_item(self, selected):
         '''购物车：如果购物车有，批量反选
+        selected str: random|reverse|on_sale|True/False 
         '''
 
         skus = MallV2.get_cart().json()['data']['skus'] or []
@@ -548,6 +549,9 @@ class TestCartSelect():
         elif selected == 'reverse':
             for s in skus:
                 expectations[False if s['selected'] else True].append(s['id'])
+        elif selected == 'on_sale':
+            for s in skus:
+                expectations[True].append(s['id']) if s['status'] == 'on_sale' else expectations[False].append(s['id'])
         else:
             for s in skus:
                 expectations[selected].append(s['id'])
@@ -766,8 +770,8 @@ class TestCartRemove():
 
     def test_clear_invalid_cart_item(self):
         '''
-        todo: 购物车：移除无效商品
-        on_sale
+        购物车：移除无效商品
+        on_sale/insufficent
         off_shelf/out_of_stock/404/store_failed
         '''
 
@@ -782,7 +786,7 @@ class TestCartRemove():
         cart_items_ids = [s['id'] for s in skus]
 
         
-        status = ('off_shelf', '404', 'store_failed', 'out_of_stock', 'on_sale')
+        status = ('off_shelf', '404', 'store_failed', 'out_of_stock', 'on_sale', 'insufficent', 'store_vip_only')
         for i in range(len(skus)):
             skus[i]['status'] = status[i % len(status)]
             

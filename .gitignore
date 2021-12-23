@@ -10,5 +10,6 @@ _build
 _static
 _templates
 _modules/
-config_local.py
+config.py
 test.py
+logs
