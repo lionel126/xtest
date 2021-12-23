@@ -1,9 +1,9 @@
-from utils.mallv2_data import MallV2DB
+from api.mallv2_data import MallV2DB
 import pytest
 import random
 import math
 from config import STORE1, STORE3, STORE4, STORE_NOT_EXIST, SKU_ID_NOT_EXIST, USER_ID, USER_ID2, USER_ID3, STORE2
-from utils import Data, MallV2, mallv2
+from api import Data, MallV2, mallv2
 from utils.utils import get_logger
 import time
 

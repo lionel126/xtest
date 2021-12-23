@@ -1,4 +1,4 @@
-from utils import MallV2, Data, MallV2DB
+from api import MallV2, Data, MallV2DB
 from config import STORE1, USER_ID
 import pytest
 import math

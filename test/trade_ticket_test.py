@@ -1,4 +1,4 @@
-from utils import MallV2, PayAdmin
+from api import MallV2, PayAdmin
 from utils.utils import fake, get_available_channel
 import random
 

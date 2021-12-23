@@ -3,7 +3,7 @@
 '''
 import math
 import pytest
-from utils import Data, MallV2
+from api import Data, MallV2
 from config import USER_ID, USER_ID2, STORE1
 import time, random
 

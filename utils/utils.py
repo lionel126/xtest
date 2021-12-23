@@ -126,6 +126,7 @@ def boss_gateway_token():
     from hashlib import sha1
 
     userInfo = '{ "id": "1", "username": "zhangsan", "nickname": "zhangsan", "email": "zhangsan@xinpianchang.com" }'
+    userInfo = 'chenshengguo'
     appSecret = 'ef34b98f9e94dbb57469491148bdeacf7fd5bd59'  # dev
     appSecret = '6732ac43a7f5ddf07135ffb579008b9947cc8a5c'  # test
     xUserToken = str(base64.b64encode(bytes(userInfo, 'utf-8')), 'utf-8') + \

@@ -2,7 +2,8 @@ import inspect
 from test.cart_test import CART_MAXIMUM, TestCartAdd as CA
 from test.cart_test import TestCartSelect as CS
 import pytest
-from utils import Data, MallV2, MallV2DB, PayAdmin, new_tag, trade_count, Url, areq, get_available_channel
+from api import Data, MallV2, MallV2DB, PayAdmin, Url
+from utils.utils import areq, get_available_channel, new_tag, trade_count, fake
 from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2, PAY_NOTICE_DELAY
 import time, math, random
 from datetime import datetime, timedelta
@@ -11,7 +12,6 @@ from collections import defaultdict
 from itertools import combinations
 import copy
 import math
-from utils import fake
 
 log = get_logger(__name__)
 

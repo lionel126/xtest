@@ -24,7 +24,9 @@ class MallV2DB():
         return r
 
     @staticmethod
-    def delete_tickets(tickets=[]):
+    def delete_tickets(tickets=None):
+        if tickets is None:
+            tickets = []
         r = delete(MallV2DB._DELETE_TICKETS, json=tickets)
         assert r.status_code == 200
         return r
