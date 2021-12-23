@@ -1,5 +1,5 @@
 TESTAPI_BASE = 'http://192.168.8.27:5000'
-DJANGO_BASE_URL = 'https://django-local.vmovier.cc'
+DJANGO_BASE_URL = 'https://django.vmovier.cc'
 BASE_URL = 'http://10.25.98.5:5004/mall/v2'
 SEARCH_BASE_URL = 'http://10.25.98.5:5006/rpc/pub/v1/search'
 PAY_ADMIN_BASE_URL = 'https://pay-admin.vmovier.cc'

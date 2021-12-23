@@ -7,7 +7,6 @@ from utils import user as userutils
 from utils.utils import areq
 import pytest
 
-
 @pytest.fixture
 def login():
     '''
@@ -115,9 +114,9 @@ class TestCloseUser():
         '''重复申请注销
         '''
         u, s = login
-        r = Boss.apply_user_close()
+        r = s.apply_user_close()
         assert r.status_code == 200
-        r = Boss.apply_user_close()
+        r = s.apply_user_close()
         assert r.status_code == 403
         j = r.json()
         assert j["code"] == "USER_LOGOUTING_CODE"
