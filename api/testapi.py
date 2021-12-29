@@ -37,6 +37,11 @@ def user(method='GET', params=None):
     '''
     return request('GET', f'{DJANGO_BASE_URL}/garlic/user', params=params)
 
+def users(method='GET', params=None):
+    '''
+    :param _count: number of users
+    '''
+    return request('GET', f'{DJANGO_BASE_URL}/garlic/users', params=params)
 
 def set_redis(k, v=None):
     data = {
@@ -45,3 +50,8 @@ def set_redis(k, v=None):
         'value': v
     }
     return request('POST', f'{DJANGO_BASE_URL}/garlic/redis/set', data=data)
+
+def users_with_realname():
+    return request('GET', f'{DJANGO_BASE_URL}/garlic/users/realname/status?u.status=0&r.status=3')
+def users_without_realname():
+    return request('GET', f'{DJANGO_BASE_URL}/garlic/users/realname/status?u.status=0&r.status=0')

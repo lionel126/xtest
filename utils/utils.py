@@ -5,6 +5,9 @@ import logging
 import logging.handlers
 from requests import request
 import faker
+import random
+from datetime import datetime, timedelta
+from . import const
 
 fake: faker.Faker = faker.Faker(['zh_CN', 'en_US'])
 
@@ -132,3 +135,28 @@ def boss_gateway_token():
     xUserToken = str(base64.b64encode(bytes(userInfo, 'utf-8')), 'utf-8') + \
         '.' + sha1(bytes(userInfo + '.' + appSecret, 'utf-8')).hexdigest()
     return xUserToken
+
+def get_check_digit(id_number):
+    """通过身份证号获取校验码"""
+    check_sum = 0
+    for i in range(0, 17):
+        check_sum += ((1 << (17 - i)) % 11) * int(id_number[i])
+    check_digit = (12 - (check_sum % 11)) % 11
+    return str(check_digit) if check_digit < 10 else 'X'
+
+def generate_id():
+    """ 随机生成身份证号，sex = 0表示女性，sex = 1表示男性 """
+
+    # 随机生成一个区域码(6位数)
+    id_number = str(random.choice(list(const.AREA_INFO.keys())))
+    # 限定出生日期范围(8位数)
+    start, end = datetime.strptime("1960-01-01", "%Y-%m-%d"), datetime.strptime("2020-12-31", "%Y-%m-%d")
+    birth_days = datetime.strftime(start + timedelta(random.randint(0, (end - start).days)), "%Y%m%d")
+    id_number += str(birth_days)
+    # 顺序码(2位数)
+    id_number += '{:02}'.format(random.randint(1, 99))
+    # 性别码(1位数)
+    # id_number += str(random.randrange(sex, 10, step=2))
+    id_number += str(random.randint(0, 9))
+    # 校验码(1位数)
+    return id_number + get_check_digit(id_number)

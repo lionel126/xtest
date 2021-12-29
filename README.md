@@ -1,8 +1,5 @@
-MALL v2 TEST
+XPC API TEST
 
-## 环境
-python3.9 -m venv .venv
-pip install -r requirements.txt
 
 ## 代理配置
 export http_proxy=http://192.168.8.27:8000; export https_proxy=http://192.168.8.27:8000;

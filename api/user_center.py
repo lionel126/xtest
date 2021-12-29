@@ -1,7 +1,9 @@
 from config import USER_CENTER_BASE_URL, X_USER_TOKEN
 from requests import request
 from functools import wraps
-
+import random
+from utils.utils import fake
+import time
 
 BOSS_HEADERS = {
     "x-user-id": "1", 
@@ -27,9 +29,10 @@ class Sess():
     URL_SEND_CAPTCHA = f'{USER_CENTER_BASE_URL}/v2/captcha/send'
     URL_CLOSE_USER = f'{USER_CENTER_BASE_URL}/v2/user/close'
     URL_USER_INFO = f'{USER_CENTER_BASE_URL}/v2/user/info/all'
+    URL_APPLY_REALNAME = f'{USER_CENTER_BASE_URL}/v2/user/verify/realname/push'
     
     def __init__(self):
-        self.HEADERS = {'device-no': 'xpctest'}
+        self.HEADERS = {'device-no': f'xpctest-{time.time()}'}
     
     @set_auth
     def login(self, method='POST', headers=None, json=None):
@@ -83,11 +86,6 @@ class Sess():
         if headers is None: headers = self.HEADERS
         return request(method, Sess.URL_USER_INFO, headers=headers, params=params)
     
-    def realname_verify(self):
-        '''实名认证
-        '''
-        pass
-    
     @set_auth
     def send_captcha(self, method='POST', headers=None, json=None):
         '''
@@ -113,19 +111,47 @@ class Sess():
                 authorization: ''
             }
         :param json: {
-                'applyReason': '' # optional 
+                'applyReason': '' # optional apply_00001 - apply_00004
             }
         '''
         if headers is None: headers = self.HEADERS
-        if json is None: json={}
+        if json is None: json={'applyReason': random.choice(['apply_00001', 'apply_00002', 'apply_00003', 'apply_00004', 'apply_00020'])}
+        if json and 'applyReason' in json and json['applyReason'] == 'apply_00020':
+            json['applyReasonValue'] = fake.text(max_nb_chars=30)
+            
         return request(method, Sess.URL_CLOSE_USER, headers=headers, json=json)
+
+    def apply_for_realname(self, method='POST', headers=None, json=None):
+        '''
+        :param json: {  
+            "type": "alipay", // alipay: 支付宝, foreign : 国外
+            "realname":"李哲",  
+            "platform":"app", // 支付宝实名认证的平台, app, mobile, pc 
+            "returnUrl":"https://www.xinpianchang.com" , // 落地页,必传
+            "idNumber": "372901200707060213", // 身份证号, 支付宝认证必传
+            "credential": "https://www.xinpianchang.com/工牌.png", // 证明材料, 海外认证必传
+            "credentialInHand": "https://www.xinpianchang.com/手持工牌.png" // 手持证明材料, 海外认证必传
+        }
+        '''
+        if headers is None: headers = self.HEADERS
+        if json is None: 
+            json={
+                "credential": "https://oss-xpc0.xpccdn.com/passport/assets/verify/11486339/2021/12/61c5773a64a95.jpg",
+                "credentialInHand": "https://oss-xpc0.xpccdn.com/passport/assets/verify/11486339/2021/12/61c57732c3785.jpg",
+                "realname": "hello",
+                "type": "foreign"
+            }
+        return request(method, Sess.URL_APPLY_REALNAME, headers=headers, json=json)
 
 class Boss():
     URL_USER_CLOSE_REVIEW_LIST = f'{USER_CENTER_BASE_URL}/v2/internal/user/close/review'
     URL_ACCEPT_USER_CLOSE = f'{USER_CENTER_BASE_URL}' + '/v2/internal/user/{}/close/review'
+    URL_REVIEW_REALNAME = f'{USER_CENTER_BASE_URL}' + '/v2/internal/user/verify/realname/{}'
+    URL_REALNAME_LIST = f'{USER_CENTER_BASE_URL}' + '/v2/user/internal/user/verify/realname/list'
+    URL_REASON = f'{USER_CENTER_BASE_URL}' + '/v2/internal/user/{}/reason'
     
     @staticmethod
-    def user_review_list(method='GET', headers=None, params=None):
+    def user_close_review_list(method='GET', headers=None, params=None):
         '''
         :param params: {
             # 
@@ -163,10 +189,38 @@ class Boss():
         :param json: {
             applyNo	string	是	申请编号  
 
-            operateType	string	是	操作类型：0-同意 1-拒绝 2-取消  
+            operateType	string	是	操作类型: 0-同意 1-拒绝 2-取消  
 
             reason	string	否	取消原因code或拒绝原因code
         }
         '''
         if headers is None: headers = BOSS_HEADERS
         return request(method, Boss.URL_ACCEPT_USER_CLOSE.format(applyNo), headers=headers, json=json)
+
+    @staticmethod
+    def realname_list(method='POST', headers=None, json=None):
+        '''
+        status	string	列表类型, INREVIEW/REJECTED/MERGED(待审核/未通过/已通过)
+        userId	string	用户ID
+        page	int	页数
+        size	int	每页条数, 默认为20
+        '''
+        if headers is None: headers = BOSS_HEADERS
+        return request(method, Boss.URL_REALNAME_LIST, headers=headers, json=json)
+    
+    @staticmethod
+    def verify_realname(id, method='POST', headers=None, json=None):
+        '''
+        status	string	认证结果:REJECTED/MERGED(拒绝通过/通过)
+        rejectReason	string	拒绝原因:身份证不够清晰
+        '''
+        if headers is None: headers = BOSS_HEADERS
+        return request(method, Boss.URL_REVIEW_REALNAME.format(id), headers=headers, json=json)
+
+    @staticmethod
+    def reason(typ, method="GET", headers=None):
+        '''
+        type	string	是	0-申请理由 1-拒绝原因 2-取消原因
+        '''
+        if headers is None: headers = BOSS_HEADERS
+        return request(method, Boss.URL_REASON.format(typ), headers=headers)
