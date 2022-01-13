@@ -1,5 +1,5 @@
 from api import testapi
-from config import REDIS_KEY_REGISTER_PREFIX
+from config import LOCAL_IP
 import time
 
 
@@ -32,4 +32,10 @@ def skip_tencent_captcha(auth):
     '''
     如果redis存在key: {PREFIX}:REGISTER_TICKET_{AUTH} 就跳过防水墙
     '''
-    testapi.set_redis(f'{REDIS_KEY_REGISTER_PREFIX}{auth}')
+    testapi.set_redis({'key': f'REGISTER_TICKET_{auth}', 'db': 'usercenter'})
+
+def clear_sms_interval(code, phone):
+    testapi.del_redis(
+        {'db': 'common-service','key': f'user_ip_{LOCAL_IP}'}, 
+        {'db': 'common-service','key': f'UC001_{code}{phone}_gap'}
+    )

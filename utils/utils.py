@@ -47,13 +47,19 @@ def trade_count(storeCodes):
         s.add(merchant[sc])
     return len(s)
 
+async def req(session, **kwargs):
+    res = await session.request(**kwargs)
+    res._body = await res.read()
+    return res
+
 
 async def areq(req_kwargs_list):
     '''async request
     '''
     async with ClientSession(trust_env=True) as session:
-        task = [session.request(**ka) for ka in req_kwargs_list]
-        res = await asyncio.gather(*task)
+        # task = [session.request(**ka) for ka in req_kwargs_list]
+        task = [req(session, **ka) for ka in req_kwargs_list]
+        res = await asyncio.gather(*task, return_exceptions=True)
         return res
 
 # not working for list

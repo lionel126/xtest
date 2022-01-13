@@ -27,9 +27,11 @@ class Sess():
     URL_LOGIN = f'{USER_CENTER_BASE_URL}/v2/user/login'
     URL_REGISTER = f'{USER_CENTER_BASE_URL}/v2/user/register'
     URL_SEND_CAPTCHA = f'{USER_CENTER_BASE_URL}/v2/captcha/send'
+    URL_VERIFY_CAPTCHA = f'{USER_CENTER_BASE_URL}/v2/captcha/verify'
     URL_CLOSE_USER = f'{USER_CENTER_BASE_URL}/v2/user/close'
     URL_USER_INFO = f'{USER_CENTER_BASE_URL}/v2/user/info/all'
     URL_APPLY_REALNAME = f'{USER_CENTER_BASE_URL}/v2/user/verify/realname/push'
+    URL_REASON = f'{USER_CENTER_BASE_URL}/v2/user/reason'
     
     def __init__(self):
         self.HEADERS = {'device-no': f'xpctest-{time.time()}'}
@@ -101,8 +103,19 @@ class Sess():
 
         return res
         
-
-
+    def verify_captcha(self, method='POST', headers=None, json=None):
+        '''
+        :param json: {
+            regionCode	string	否	地区区号,不传默认+86
+            phone	string	是	验证手机号
+            smsCaptcha	string	是	短信验证码
+            type	int	是	验证码类型
+        }
+        '''
+        if headers is None: headers = self.HEADERS
+        res = request(method, Sess.URL_VERIFY_CAPTCHA, headers=headers, json=json)
+        self.cid = res.json()['data']['cid']
+        return res
 
     def apply_user_close(self, method="POST", headers=None, json=None):
         '''
@@ -112,13 +125,16 @@ class Sess():
             }
         :param json: {
                 'applyReason': '' # optional apply_00001 - apply_00004
+                'cid': ''
             }
         '''
         if headers is None: headers = self.HEADERS
-        if json is None: json={'applyReason': random.choice(['apply_00001', 'apply_00002', 'apply_00003', 'apply_00004', 'apply_00020'])}
-        if json and 'applyReason' in json and json['applyReason'] == 'apply_00020':
-            json['applyReasonValue'] = fake.text(max_nb_chars=30)
-            
+        if json is None: 
+            json={'applyReason': random.choice(['apply_00001', 'apply_00002', 'apply_00003', 'apply_00004', 'apply_00020'])}
+            if json['applyReason'] == 'apply_00020':
+                json['applyReasonValue'] = f'®🐶 {fake.text(max_nb_chars=30)}'
+            if hasattr(self, 'cid'):
+                json['cid'] = self.cid
         return request(method, Sess.URL_CLOSE_USER, headers=headers, json=json)
 
     def apply_for_realname(self, method='POST', headers=None, json=None):
@@ -143,12 +159,36 @@ class Sess():
             }
         return request(method, Sess.URL_APPLY_REALNAME, headers=headers, json=json)
 
+    def reason(self, method='GET', headers=None):
+        if headers is None: headers = self.HEADERS
+        return request(method, Sess.URL_REASON, headers=headers)
+
+
+class InternalApi():
+    '''内部接口 
+    '''
+    URL_VIP_NOTIFY = f'{USER_CENTER_BASE_URL}v2/internal/user/vip/notify'
+    @staticmethod
+    def vip_notify(method='GET', json=None):
+        '''
+        :param json:{
+            "user_id": 10007166, 
+            "type": 1, 
+            "package_type": "year", 
+            "start_time": "20220101", 
+            "end_time": "20230101"
+        }
+        '''
+        return request(method=method, url=InternalApi.URL_VIP_NOTIFY, json=json)
+
+
 class Boss():
     URL_USER_CLOSE_REVIEW_LIST = f'{USER_CENTER_BASE_URL}/v2/internal/user/close/review'
     URL_ACCEPT_USER_CLOSE = f'{USER_CENTER_BASE_URL}' + '/v2/internal/user/{}/close/review'
     URL_REVIEW_REALNAME = f'{USER_CENTER_BASE_URL}' + '/v2/internal/user/verify/realname/{}'
     URL_REALNAME_LIST = f'{USER_CENTER_BASE_URL}' + '/v2/user/internal/user/verify/realname/list'
     URL_REASON = f'{USER_CENTER_BASE_URL}' + '/v2/internal/user/{}/reason'
+    URL_USER_STATUS = f'{USER_CENTER_BASE_URL}/user/status'
     
     @staticmethod
     def user_close_review_list(method='GET', headers=None, params=None):
@@ -224,3 +264,8 @@ class Boss():
         '''
         if headers is None: headers = BOSS_HEADERS
         return request(method, Boss.URL_REASON.format(typ), headers=headers)
+
+    @staticmethod
+    def user_status(method='POST', headers=None, json=None):
+        if headers is None: headers = BOSS_HEADERS
+        return request(method, Boss.URL_USER_STATUS, headers=headers, json=json)

@@ -43,13 +43,12 @@ def users(method='GET', params=None):
     '''
     return request('GET', f'{DJANGO_BASE_URL}/garlic/users', params=params)
 
-def set_redis(k, v=None):
-    data = {
-        'db': 'usercenter',
-        'key': k,
-        'value': v
-    }
-    return request('POST', f'{DJANGO_BASE_URL}/garlic/redis/set', data=data)
+def set_redis(*a):
+    
+    return request('POST', f'{DJANGO_BASE_URL}/garlic/redis/set', json=a)
+def del_redis(*a):
+    
+    return request('POST', f'{DJANGO_BASE_URL}/garlic/redis/del', json=a)
 
 def users_with_realname():
     return request('GET', f'{DJANGO_BASE_URL}/garlic/users/realname/status?u.status=0&r.status=3')
