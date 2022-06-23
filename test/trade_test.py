@@ -7,13 +7,13 @@ from utils.utils import areq, get_available_channel, new_tag, trade_count, fake
 from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2, PAY_NOTICE_DELAY
 import time, math, random
 from datetime import datetime, timedelta
-from utils.utils import get_logger
+from utils.utils import log
 from collections import defaultdict
 from itertools import combinations
 import copy
 import math
 
-log = get_logger(__name__)
+# log = _get_logger(__name__)
 
 class TestTradeConfirm():
     '''订单确认

@@ -7,6 +7,8 @@ def get_available_user(**kw):
     return testapi.user(params={'nickname': 'puppeteernickname', 'status': 0, **kw}).json()['data']
     # return request('GET', f'{DJANGO_BASE_URL}/garlic/user', params={'nickname': 'puppeteernickname', 'status':0}).json()['data']
 
+def get_user(**kw):
+    return testapi.user(params=kw).json()['data']
 
 def get_available_users(n):
     return testapi.users(params={'nickname': 'puppeteernickname', 'status': 0, '_count': n}).json()['data']
@@ -39,3 +41,10 @@ def clear_sms_interval(code, phone):
         {'db': 'common-service','key': f'user_ip_{LOCAL_IP}'}, 
         {'db': 'common-service','key': f'UC001_{code}{phone}_gap'}
     )
+
+def vip_status(user_id):
+    r = testapi.vip_status(user_id).json()
+    if r['code'] == 'SUCCESS':
+        return r['data']
+    return {}
+

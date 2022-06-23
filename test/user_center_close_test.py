@@ -28,8 +28,8 @@ def register(code=None, phone=None):
     s = Sess()
     s.send_captcha(json={'regionCode': code, 'phone': phone, 'type': 5})
 
-    userutils.skip_tencent_captcha(s.HEADERS['authorization'])
-    r = s.register(json={'nickname': 'puppeteernickname', 'regionCode': code, 'phone': phone, 'smsCaptcha': '000000', 'quickMode': False})
+    userutils.skip_tencent_captcha(s.headers['authorization'])
+    r = s.register(json={'nickname': f'puppet{phone[-4:]}', 'regionCode': code, 'phone': phone, 'smsCaptcha': '000000', 'quickMode': False})
     # assert r.status_code == 201
     # j = r.json()
     # assert j['code'] == 'SUCCESS'
@@ -479,7 +479,7 @@ class TestCloseUser():
         u, s = self.u, self.s
         kwargs = {
             'url': Sess.URL_CLOSE_USER,
-            'headers': s.HEADERS,
+            'headers': s.headers,
             'method': 'POST',
             'json': {
                 'cid':s.cid, 

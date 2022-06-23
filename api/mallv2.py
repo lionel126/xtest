@@ -4,7 +4,7 @@ import sys
 import config
 from config import USER_ID, STORE1, BASE_URL, X_USER_TOKEN
 from requests import request
-from utils.utils import replace, append, boss_gateway_token, get_logger
+from utils.utils import replace, append, boss_gateway_token, log
 from functools import wraps, update_wrapper
 import random
 from utils.utils import fake
@@ -15,7 +15,7 @@ MANAGER_HEADERS = {
     "x-user-token": X_USER_TOKEN
 }
 
-log = get_logger(__name__)
+# log = _get_logger(__name__)
 class Url():
     product_detail = BASE_URL + '/api/product/detail'
 
@@ -262,7 +262,7 @@ def create_coupon(method="POST", headers=None, json=None, **kwargs):
             "receiveType": 0,
             "userTag": "tag1,tag2",
             "returnable": False,
-            "rangeType": 1,
+            "rangeType": 1, # 0 SPU;1: SKU;2:promotion_tag
             "rangeStoreCode": config.STORE1,
             "rangeValue": "value",
         }

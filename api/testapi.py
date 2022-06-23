@@ -43,14 +43,58 @@ def users(method='GET', params=None):
     '''
     return request('GET', f'{DJANGO_BASE_URL}/garlic/users', params=params)
 
-def set_redis(*a):
+def get_redis(db, key):
+    '''
     
+    '''
+    return request('GET', f'{DJANGO_BASE_URL}/garlic/redis/get', params = {'key': key, 'db': db})
+
+def del_redis(*a):
+    '''
+    :param a: e.g. {
+        "db": "usercenter",
+        "key": "user_info_10265312"
+    }
+    '''
+    return request('POST', f'{DJANGO_BASE_URL}/garlic/redis/del', json=a)
+
+def set_redis(*a):
+    '''
+    :param a: e.g. {
+        "db": "usercenter",
+        "key": "user_info_10265312"
+    }
+    '''
     return request('POST', f'{DJANGO_BASE_URL}/garlic/redis/set', json=a)
 def del_redis(*a):
-    
+    '''
+    :param a: e.g. {
+        "db": "usercenter",
+        "key": "user_info_10265312"
+    }
+    '''
     return request('POST', f'{DJANGO_BASE_URL}/garlic/redis/del', json=a)
 
 def users_with_realname():
     return request('GET', f'{DJANGO_BASE_URL}/garlic/users/realname/status?u.status=0&r.status=3')
 def users_without_realname():
     return request('GET', f'{DJANGO_BASE_URL}/garlic/users/realname/status?u.status=0&r.status=0')
+
+def vip_status(user_id):
+    return request("GET", f'{DJANGO_BASE_URL}/garlic/user/{user_id}/vip_status')
+
+def team_applications(**params):
+    return request("GET", f'{DJANGO_BASE_URL}/sns/team/applications', params=params)
+
+def get_article_rewards(**params):
+    '''
+    :params: 查询条件
+    '''
+    return request("GET", f'{DJANGO_BASE_URL}/sns/article/rewards', params=params)
+
+def update_article_rewards(**kwargs):
+    '''
+    :params: 查询条件
+    :json: 更新数据
+    '''
+    return request("PATCH", f'{DJANGO_BASE_URL}/sns/article/rewards', **kwargs)
