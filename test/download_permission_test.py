@@ -5,7 +5,7 @@ import pytest
 import phpserialize
 from bs4 import BeautifulSoup
 from api.xpcapi import XpcApi
-from api.snsapi import Sns
+from api.snsapi import Xpc
 from api import testapi, PayAdmin, MallV2
 from api.user_center import InternalApi as useriapi
 from utils import utils
@@ -15,7 +15,8 @@ import config
 # 组合：本人会员/团队会员
 
 
-ARTICLE_ID = 11295436
+# ARTICLE_ID = 11295436
+ARTICLE_ID = 11297151
 VIP_END_TIME_IN_THE_FUTURE = (datetime.now() + timedelta(days=10)).strftime('%Y%m%d')
 VIP_END_TIME_IN_THE_PAST = (datetime.now() - timedelta(days=10)).strftime('%Y%m%d')
 
@@ -48,7 +49,7 @@ def redis_del_user_cache(user_id: int):
     assert r.status_code == 200
 
 
-def clear_rewards(user: Sns, article_id: int):
+def clear_rewards(user: Xpc, article_id: int):
     r = testapi.get_article_rewards(user_id=user.id, article_id=article_id, reward_status=1)
     assert r.status_code == 200
     results = r.json()['data']
@@ -58,7 +59,7 @@ def clear_rewards(user: Sns, article_id: int):
         r = testapi.update_article_rewards(params=params, json={'reward_status': 0})
         assert r.status_code == 200
 
-def reward(user: Sns, article_id: int):
+def reward(user: Xpc, article_id: int):
     xuser = XpcApi(sns_session=user)
     trade_no = xuser.create_reward_order(article_id=article_id, amount=660).json()['data']['trade_no']
     fix_order(trade_no, user.id)
@@ -79,7 +80,7 @@ def test_x():
     articleid = 11295436
     cache_key = f'article_transform___{articleid}-1-1--1_2.1.3'
     
-    user = Sns(phone)
+    user = Xpc(phone)
     # user.quit_team(id=articleid)
     # user.apply_team_member(articleid=articleid)
     # apid = testapi.team_applications(userid=10474253, articleid=11295436).json()['data'][0]['id']
@@ -114,7 +115,7 @@ def test_y():
 
 @pytest.fixture
 def author():
-    author = Sns('15600455126')
+    author = Xpc('15600455126')
     author.id = 10265312
     yield author
     author.logout()
@@ -123,7 +124,7 @@ def author():
 def user():
     '''登录用户
     '''
-    u = Sns('13609750911')
+    u = Xpc('13609750911')
     u.id = 10474253
     quit_team(u, ARTICLE_ID)
     quit_vip(u)
@@ -135,26 +136,30 @@ def user():
 def user_logged_out():
     '''未登录用户
     '''
-    u = Sns()
+    u = Xpc()
     yield u
 
 
-def join_team(user: Sns, author: Sns, article_id: int):
+def join_team(user: Xpc, author: Xpc, article_id: int):
     user.quit_team(id=article_id)
     user.apply_team_member(articleid=article_id)
     apid = testapi.team_applications(userid=user.id, articleid=article_id).json()['data'][0]['id']
     author.agree_application_for_team_member(id=apid)
 
-def quit_team(user: Sns, article_id: int):
+def quit_team(user: Xpc, article_id: int):
     user.quit_team(id=article_id)
 
-def join_vip(user: Sns, **kwargs):
-    useriapi.vip_notify(user_id=user.id, end_time=VIP_END_TIME_IN_THE_FUTURE, **kwargs)
+def join_vip(user: Xpc, type=1, flag=1):
+    '''
+    svip: type=2; flag=3
+    black diamond: type=2; flag=7
+    '''
+    useriapi.vip_notify(user_id=user.id, end_time=VIP_END_TIME_IN_THE_FUTURE, type=type, flag=flag)
 
-def quit_vip(user: Sns, **kwargs):
-    useriapi.vip_notify(user_id=user.id, end_time=VIP_END_TIME_IN_THE_PAST, **kwargs)
+def quit_vip(user: Xpc,):
+    useriapi.vip_notify(user_id=user.id, end_time=VIP_END_TIME_IN_THE_PAST)
 
-def assert_auth_exists(who: Sns, exists: bool):
+def assert_auth_exists(who: Xpc, exists: bool):
     '''断言 下载✅ 求下载❌ 
     '''
     html = who.article(ARTICLE_ID).text
@@ -174,7 +179,7 @@ def assert_auth_exists(who: Sns, exists: bool):
         #     assert BeautifulSoup(html, "html.parser").select('li.download-authorization.dn')
         #     print('有授权信息 不展示')
 
-def assert_begging_exists(who: Sns):
+def assert_begging_exists(who: Xpc):
     '''
     断言： 求下载✅  下载❌
     '''
@@ -263,8 +268,13 @@ def test_4(author, user):
     assert_response_of_download_by_token(r)
 
 def test_5(author, user):
-    redis_del_user_cache(author.id)
-    # xauthor = XpcApi(sns_session=author)
+    # redis_del_user_cache(author.id)
+    join_team(user, author, ARTICLE_ID)
+    # join_vip(user)
+    # join_vip(user, flag=3, type=2)
+    # redis_del_user_cache(user.id)
+    
+    xauthor = XpcApi(sns_session=author)
     
     # xauthor.edit_article(
     #     ARTICLE_ID, 

@@ -225,13 +225,14 @@ class InternalApi():
         '''
         :param json:{
             "user_id": 10000000, 
-            "type": 1, 
+            "type": 1, # 1 if json['flag'] == 1 else (2 if json['flag'] in (3, 7) else raise Exception)
             "package_type": "year", 
             "start_time": "20220101", 
             "end_time": "20230101",
             "subscribe": 1,
             "next_renew_time": "20190130",
-            "tag": 1
+            "tag": 1,
+            "flag": 1 # 1 普通会员; 3 超级会员; 7黑钻
         }
         '''
         if json is None: json={
@@ -242,7 +243,8 @@ class InternalApi():
             "end_time": "20230101",
             "subscribe": 1,
             "next_renew_time": "20190130",
-            "tag": 1
+            "tag": 1,
+            "flag": 1 
         }
         replace(kwargs, json)
         return request(method=method, url=InternalApi.URL_VIP_NOTIFY, json=json)

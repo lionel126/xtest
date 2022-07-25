@@ -1,15 +1,15 @@
 import time
 from requests import request
 from api.user_center import Sess
-from config import SNS_BASE_URL, COOKIE_AUTH, COOKIE_DEVICE_ID
+from config import XPC_BASE_URL, COOKIE_AUTH, COOKIE_DEVICE_ID
 from utils.utils import replace, append
 
-class Sns():
+class Xpc():
     
-    URL_APPLY_TEAM_MEMBER = f'{SNS_BASE_URL}/article/team/ts-apply'
-    URL_AGREE_TEAM_APPLICATION = f'{SNS_BASE_URL}/article/team/ts-oprate'
-    URL_QUIT_TEAM = f'{SNS_BASE_URL}/user/space/ts-quit'
-    URL_ARTICLE = f'{SNS_BASE_URL}/a{{}}'
+    URL_APPLY_TEAM_MEMBER = f'{XPC_BASE_URL}/article/team/ts-apply'
+    URL_AGREE_TEAM_APPLICATION = f'{XPC_BASE_URL}/article/team/ts-oprate'
+    URL_QUIT_TEAM = f'{XPC_BASE_URL}/user/space/ts-quit'
+    URL_ARTICLE = f'{XPC_BASE_URL}/a{{}}'
 
     
     def __init__(self, phone='', password='999999', code='+86', app_session=None):
@@ -60,7 +60,7 @@ class Sns():
                 'role[]': 55
             }
         replace(kwargs, data, cookies)
-        return request(method, url=Sns.URL_APPLY_TEAM_MEMBER, headers=headers, cookies=cookies, data=data)
+        return request(method, url=Xpc.URL_APPLY_TEAM_MEMBER, headers=headers, cookies=cookies, data=data)
     
     def quit_team(self, method='POST', cookies=None, data=None, **kwargs):
         if cookies is None:
@@ -71,7 +71,7 @@ class Sns():
                 'audit': 0
             }
         replace(kwargs, data, cookies)
-        return request(method, url=Sns.URL_QUIT_TEAM, cookies=cookies, data=data)
+        return request(method, url=Xpc.URL_QUIT_TEAM, cookies=cookies, data=data)
     
     def agree_application_for_team_member(self, method='POST', data=None, cookies=None, **kwargs):
         if cookies is None:
@@ -83,9 +83,9 @@ class Sns():
                 "type":1
             }
         replace(kwargs, data, cookies)
-        return request(method, url=Sns.URL_AGREE_TEAM_APPLICATION, cookies=cookies, data=data)
+        return request(method, url=Xpc.URL_AGREE_TEAM_APPLICATION, cookies=cookies, data=data)
 
     def article(self, article_id, method='GET', cookies=None):
         if cookies is None:
             cookies = self.cookies
-        return request(method, url=Sns.URL_ARTICLE.format(article_id), cookies=cookies)
+        return request(method, url=Xpc.URL_ARTICLE.format(article_id), cookies=cookies)

@@ -4,13 +4,14 @@ PAY_ADMIN_BASE_URL = 'https://pay-admin.vmovier.cc'
 USER_CENTER_BASE_URL = 'http://user-center.vmovier.cc/api'
 XPC_API_BASE_URL = 'https://app-test.xinpianchang.com'
 VIP_BASE_URL = 'http://10.25.98.5:5021'
-SNS_BASE_URL = 'https://www-test.xinpianchang.com'
+XPC_BASE_URL = 'https://www-test.xinpianchang.com'
+PASSPORT_BASE_URL = 'https://passport-test.xinpianchang.com'
 
 # case sensitive
 COOKIE_DEVICE_ID = 'TEST-Device_ID'
 COOKIE_AUTH = 'TEST-Authorization'
 
-DEL = '⌫' # ␡
+DEL = '$DEL' # ␡
 
 TESTAPI_BASE = 'https://flask.vmovier.cc'
 DJANGO_BASE_URL = 'https://django.vmovier.cc'

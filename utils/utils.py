@@ -1,3 +1,4 @@
+from urllib.parse import urlparse
 from uuid import uuid4
 from aiohttp import ClientSession
 import asyncio
@@ -180,3 +181,7 @@ def generate_id():
     id_number += str(random.randint(0, 9))
     # 校验码(1位数)
     return id_number + get_check_digit(id_number)
+
+def parse_url(url:str):
+    r = urlparse(url)
+    return f'{r.scheme}://{r.netloc}{r.path}'
