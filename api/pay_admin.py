@@ -1,3 +1,4 @@
+import os
 import requests
 from config import PAY_ADMIN_BASE_URL
 from utils.utils import replace, append
@@ -14,7 +15,7 @@ class PayAdmin():
         return session_pay_admin.get(f'{PAY_ADMIN_BASE_URL}/api/current/user')
 
     def _login(self):
-        session_pay_admin.post(f'{PAY_ADMIN_BASE_URL}/login', {"email": "chenshengguo@xinpianchang.com", "password": "123456"})
+        session_pay_admin.post(f'{PAY_ADMIN_BASE_URL}/login', {"email": os.getenv("pay_admin_account", "chenshengguo@xinpianchang.com"), "password": os.getenv('pay_admin_password', "123456")})
     
     def fix(self, order_no):
         '''补单

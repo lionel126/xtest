@@ -1,12 +1,12 @@
-BASE_URL = 'http://10.25.98.5:5004/mall/v2'
+BASE_URL = 'http://10.23.84.8:5004/mall/v2'
 SEARCH_BASE_URL = 'http://10.25.98.5:5006/rpc/pub/v1/search'
-PAY_ADMIN_BASE_URL = 'https://pay-admin.vmovier.cc'
+PAY_ADMIN_BASE_URL = 'https://pay-admin.xinpianchang.com'
 USER_CENTER_BASE_URL = 'http://user-center.vmovier.cc/api'
 XPC_API_BASE_URL = 'https://app-test.xinpianchang.com'
 VIP_BASE_URL = 'http://10.25.98.5:5021'
 XPC_BASE_URL = 'https://www-test.xinpianchang.com'
 PASSPORT_BASE_URL = 'https://passport-test.xinpianchang.com'
-STOCK_BASE_URL = 'https://stock-test.xinpianchang.com'
+STOCK_BASE_URL = 'https://stock.xinpianchang.com'
 
 # case sensitive
 COOKIE_DEVICE_ID = 'TEST-Device_ID'
