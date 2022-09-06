@@ -378,6 +378,7 @@ def update_coupon(method="POST", headers=None, json=None, **kwargs):
             "effectiveAt": int((time.time() - 3600) * 1000),
             "expiredAt": int((time.time() + 3600 * 24) * 1000),
             "duration": 0,
+            "durationUnit": "millisecond",
             "quantity": -1,
             "maxReceived": -1,
             "unusedLimit": -1,
