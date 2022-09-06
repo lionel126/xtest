@@ -1,5 +1,6 @@
 aiohttp==3.7.4.post0
 alabaster==0.7.12
+Appium-Python-Client==2.6.1
 async-generator==1.10
 async-timeout==3.0.1
 attrs==21.2.0

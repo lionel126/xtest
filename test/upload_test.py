@@ -1,10 +1,45 @@
 import os
+import time
 import mimetypes
 from datetime import datetime as dt
-from api.xpcapi import XpcApi, upload_video_part, upload_video
+import pytest
+from api.xpcapi import XpcApi
+from api.upload import upload_video_part, upload_video
 
 
-def test_audit_articles():
+FILE = '/Users/chensg/Movies/qhl-10.mp4'
+filePartSize = 204800
+
+def get_file():
+    file_size = os.path.getsize(FILE)
+    return os.path.split(FILE)[1], file_size
+
+@pytest.fixture
+def user():
+    app = XpcApi('18679311959')
+    yield app
+    app.logout()
+
+def upload(j:dict):
+    url = j['data']['original']['uploadDomain']+ '/' + j['data']['original']['key']
+    accessKeyId = j['data']['original']['accessKeyId']
+    signatures = j['data']['original']['signature']
+    uploadId = j['data']['original']['uploadId']
+    partCount = j['data']['original']['partCount']
+    with open(FILE, 'rb') as f:
+        for i in range(partCount):
+            partNumber = i + 1
+            upload_video_part(
+                url=url, 
+                headers={'Authorization': f'KSS {accessKeyId}:{signatures[i]}'}, 
+                params={
+                    'partNumber': partNumber,
+                    'uploadId': uploadId
+                },
+                data=f.read(filePartSize) if i < partCount - 1 else f.read()
+            )
+
+def test_publish_v2():
     '''v2 upload api
     '''
     app = XpcApi()
@@ -53,3 +88,23 @@ def test_audit_articles():
             complete.append(result)
             
     app.upload_complete(complete=complete, fileName=file_name, uploadNo=data['uploadNo'], formToken=formToken)
+
+
+
+
+def test_publish_v1(user:XpcApi):
+    '''
+    '''
+    key, fileSize = get_file()
+    res = user.upload_token(key=key, fileSize=fileSize, filePartSize=filePartSize)
+    j = res.json()
+    
+    upload(j)
+
+    partCount = j['data']['original']['partCount']
+    uploadId = j['data']['original']['uploadId']
+    uploadNo = j['data']['uploadNo']
+    user.upload_finish(partCount=partCount, uploadId=uploadId, uploadNo=uploadNo)
+    time.sleep(2)
+    user.publish_article(upload_no=uploadNo, public_status=2, team=False)
+    

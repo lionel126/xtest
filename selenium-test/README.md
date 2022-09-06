@@ -19,7 +19,7 @@ debuggerAddress 指定chromedebugging port, 连接启动了的chrome
 # ????
 相对selector vs 绝对selector? elem.find_element() or driver.find_element()
 execute_script: puppeteer支持, 可以传入element object. python 支持
-Network Interception: currently unavailable https://www.selenium.dev/documentation/webdriver/bidirectional/bidi_api/#network-interception
+Network Interception: currently unavailable https://www.selenium.dev/documentation/webdriver/bidirectional/bidi_api/#network-interception; seleniumwire?
 
 # css selector
 :is(.red, .yellow)    -> either

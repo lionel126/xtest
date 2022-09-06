@@ -1,3 +1,4 @@
+import copy
 import json as js
 from requests import request
 from config import XPC_API_BASE_URL, COOKIE_DEVICE_ID, COOKIE_AUTH
@@ -15,8 +16,13 @@ class XpcApi():
     URL_UPLOAD_CHECK_PARAMS = f'{XPC_API_BASE_URL}/v2/article/checkParams'
     URL_UPLOAD_PREPARE = f'{XPC_API_BASE_URL}/v2/upload/prepare'
     URL_UPLOAD_COMPLETE = f'{XPC_API_BASE_URL}/v2/upload/complete'
-    URL_AUDIT_ARTICLES = f'{XPC_API_BASE_URL}/v2/user/auditArticles'
+    URL_USER_AUDIT_ARTICLES = f'{XPC_API_BASE_URL}/v2/user/auditArticles'
     URL_EDIT_ARTICLE = f'{XPC_API_BASE_URL}/v2/article/{{}}'
+    URL_AUDIT_ARTICLE = f'{XPC_API_BASE_URL}/article/{{}}/audit'
+
+    URL_UPLOAD_TOKEN = f'{XPC_API_BASE_URL}/upload/token'
+    URL_UPLOAD_FINISH = f'{XPC_API_BASE_URL}/upload/finish'
+    URL_PUBLISH_ARTICLE = f'{XPC_API_BASE_URL}/v2/article'
 
     URL_PRIVATE_SPACE_CHECK = f'{XPC_API_BASE_URL}/v2/privateVideo/space/check'
     URL_SEARCH_AUTH = f'{XPC_API_BASE_URL}/v2/search/auth'
@@ -32,6 +38,7 @@ class XpcApi():
     URL_ARTICLE_SHARE = f'{XPC_API_BASE_URL}/article/{{}}/share'
 
     URL_CREATE_REWARD_ORDER = f'{XPC_API_BASE_URL}/v2/article/createRewardDownloadTrade'
+    URL_PUBLIC_STATUS = f'{XPC_API_BASE_URL}/v2/article/{{}}/publicStatus'
 
 
     def __init__(self, phone='', password='999999', code='+86', sns_session=None):
@@ -66,30 +73,126 @@ class XpcApi():
 
     def follow(self, user_id, method='POST', headers=None):
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         return request(
             method,
             XpcApi.URL_FOLLOW.format(user_id),
             headers=headers
         )
 
-    def audit_articles(self, method='GET', headers=None, params=None, **kwargs):
+    def user_audit_articles(self, method='GET', headers=None, params=None, **kwargs):
         '''
+        用户审核中作品列表？
         :param params: {"isPrivate":0, "pageSize": 100}
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if params is None:
             params = {"isPrivate": 0, "pageSize": 100}
         replace(kwargs, params)
         return request(
             method,
-            XpcApi.URL_AUDIT_ARTICLES,
+            XpcApi.URL_USER_AUDIT_ARTICLES,
             headers=headers,
             params=params
         )
-    # go-xpc-api v2 upload api
+    def audit_article(self, article_id, method='POST', headers=None, json=None, **kwargs):
+        '''管理员审核作品
+        '''
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        if json is None:
+            # 评级差 审核通过
+            json = {"quality":3,"is_audit":1}
+        replace(kwargs, json, headers)
+        return request(method, url=XpcApi.URL_AUDIT_ARTICLE.format(article_id), headers=headers, json=json)
 
+    # php xpc-api v1 upload api
+    def upload_token(self, method='POST', headers=None, json=None, **kwargs):
+        '''v1
+
+        :param json:default {
+                "fileSize": 0,
+                # "filePartSize": 0, # optional
+                "key": "filename.mp4",
+                "fileMimeType": [
+                    "video/mp4"
+                ],
+                "fileUploadAction":"createPublicVideo"
+            }
+        {
+            "fileSize": 999999,
+            "filePartSize": 333333,
+            "key": "filename.mp4",
+            "fileMimeType": [
+                "video/mp4"
+            ],
+            "fileUploadAction":"createPublicVideo"
+        }
+
+        createPrivateVideo	上传私密视频
+        createPublicVideo	上传公开作品的视频
+        updatePrivateVideo	修改私密视频
+        updatePublicVideo	修改公开作品
+        publicVideoTransPrivateVideo	公开作品转私密视频
+        privateVideoTransPublicVideo	私密视频转公开作品
+        '''
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        if json is None:
+            json = {
+                "fileSize": 0,
+                "filePartSize": 0, 
+                "key": "filename.mp4",
+                "fileMimeType": [
+                    "video/mp4"
+                ],
+                "fileUploadAction":"createPublicVideo"
+            }
+        replace(kwargs, json, headers)
+        # append(kwargs, json, ['filePartSize'])
+        # if 'filePartSize' not in json:
+        #     json['filePartSize'] = json['fileSize']
+        return request(method, XpcApi.URL_UPLOAD_TOKEN, headers=headers, json=json)
+
+    def upload_finish(self, method='POST', headers=None, json=None, **kwargs):
+        '''v1 
+        :param json: default 
+        {
+            "data": {
+                "body": "<CompleteMultipartUpload><Part><PartNumber>1</PartNumber><ETag></ETag></Part></CompleteMultipartUpload>",
+                "uploadId": ""
+            },
+            "uploadNo": ""
+        }
+
+        {
+            "data": {
+                "body": "<CompleteMultipartUpload><Part><PartNumber>1</PartNumber><ETag></ETag></Part><Part><PartNumber>2</PartNumber><ETag></ETag></Part><Part><PartNumber>3</PartNumber><ETag></ETag></Part><Part><PartNumber>4</PartNumber><ETag></ETag></Part><Part><PartNumber>5</PartNumber><ETag></ETag></Part><Part><PartNumber>6</PartNumber><ETag></ETag></Part></CompleteMultipartUpload>",
+                "uploadId": "4f690f3735d64ec59d21dbaca3096c24"
+            },
+            "uploadNo": "60bf2a1a635f8"
+        }
+        '''
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        if json is None:
+            json = {
+                "data": {
+                    "body": "<CompleteMultipartUpload><Part><PartNumber>1</PartNumber><ETag></ETag></Part></CompleteMultipartUpload>",
+                    "uploadId": ""
+                },
+                "uploadNo": ""
+            }
+        if 'partCount' in kwargs:
+            l = [f'<Part><PartNumber>{i+1}</PartNumber><ETag></ETag></Part>' for i in range(kwargs['partCount'])]
+            body = '<CompleteMultipartUpload>{}</CompleteMultipartUpload>'.format(''.join(l))
+            kwargs['body'] = body
+        replace(kwargs, json, headers)
+        return request(method, XpcApi.URL_UPLOAD_FINISH, headers=headers, json=json)
+
+
+    # go-xpc-api v2 upload api
     def check_params(self, method='POST', headers=None, json=None, **kwargs):
         '''
         :param json: {
@@ -121,7 +224,7 @@ class XpcApi():
         }
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None:
             json = js.loads('''{
             "allow_download_type": "all",
@@ -168,7 +271,7 @@ class XpcApi():
         }
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None:
             json = {
                 "fileMimeType": "video/mp4",
@@ -185,7 +288,7 @@ class XpcApi():
 
     def upload_complete(self, method='POST', headers=None, json=None, **kwargs):
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None:
             json = js.loads(r'''{
                 "complete": [
@@ -216,10 +319,10 @@ class XpcApi():
         '''
         subfix = dt.now().strftime('%Y-%m-%d')
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None:
             json = {
-                'title': f'xpctest🐶哈哈哈{subfix}',
+                'title': f'xpctest🐶测试edit{subfix}',
                 'cover': 'https://oss-xpc0.xpccdn.com/uploadfile/article/auto-cover/2022/3/14/fb89f46b-d4fe-42c6-a5bf-5c0f76d3fb1e.jpeg',
                 'categories': [{'parent_id': 1, 'child_id': 2}], 
                 'tags': ['定格'], 
@@ -245,12 +348,52 @@ class XpcApi():
             }
         replace(kwargs, json, headers)
         return request(method, url=XpcApi.URL_EDIT_ARTICLE.format(article_id), headers=headers, json=json)
-        
+
+    def publish_article(self, method='POST', headers=None, json=None, **kwargs):
+        '''
+        '''
+        subfix = dt.now().strftime('%W %j %a %S.%f')
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        if json is None:
+            json = {
+                'title': f'xpctest🐶测试发布{subfix}',
+                'cover': 'https://oss-xpc0.xpccdn.com/uploadfile/article/auto-cover/2022/3/14/fb89f46b-d4fe-42c6-a5bf-5c0f76d3fb1e.jpeg',
+                'categories': [{'parent_id': 1, 'child_id': 2}], 
+                'tags': ['定格'], 
+                'is_reproduce': False, 
+                'allow_comment': True, 
+                'danmaku': False, 
+                'is_private': False, 
+                'allow_download_type': 'all',
+                'allow_download_flags': {
+                    'team': True, 
+                    'vip': True, 
+                    'reward': False
+                },
+                'reward_amounts': [660, 880, 8880],
+                'role_ids': [1],
+                'authorized_type': 0,
+                'description': '',
+                'allow_vmovier_recommend': True,
+                'award': '', 
+                'external_urls': [],
+                'team_users': [],
+                # 'stills': {'delete': [], 'update': [], 'insert': []}, 
+                'stills': [],
+                'quality': 0, 
+                'type': 'selfhost',
+                'public_status': 1,
+                'upload_no': ''
+            }
+        replace(kwargs, json, headers)
+        return request(method, url=XpcApi.URL_PUBLISH_ARTICLE, headers=headers, json=json)
+
     def download_video_list(self, article_id, method='GET', headers=None, **kwargs):
         '''
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         replace(kwargs, headers)
         return request(method, url=XpcApi.URL_DOWNLOAD_VIDEO_LIST.format(article_id), headers=headers)
 
@@ -259,7 +402,7 @@ class XpcApi():
         :param json: default {'download_token': 'asdf'}
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None: json={}
         append(kwargs, json, ['download_token'])
         return request(method, url=XpcApi.URL_DOWNLOAD_BY_TOKEN, headers=headers, json=json)
@@ -268,7 +411,7 @@ class XpcApi():
         '''检查私密存储空间
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None:
             json = {"fileSize": 0}
         replace(kwargs, json)
@@ -278,7 +421,7 @@ class XpcApi():
         '''关闭/开启 作品评论
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None:
             json = {
                 "operate_type": "cancel"
@@ -290,7 +433,7 @@ class XpcApi():
         '''私信额度
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if params is None:
             params = {}
         append(kwargs, params, ['to'])
@@ -300,28 +443,28 @@ class XpcApi():
         '''作品 专业搜索
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         return request(method, url=XpcApi.URL_SEARCH_AUTH, headers=headers)
 
     def creators_auth(self, method='GET', headers=None, **kwargs):
         '''创作人 高级筛选
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         return request(method, url=XpcApi.URL_CREATORS_AUTH, headers=headers)
 
     def get_download_url(self, article_id, method='GET', headers=None, **kwargs):
         '''下载地址 (作者下载原片)
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         return request(method, url=XpcApi.URL_DOWNLOAD_URL.format(article_id), headers=headers)
 
     def check_download_permission(self, article_id, method='GET', params=None, headers=None, **kwargs):
         '''下载权限 (会员下载别人转码后视频)
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if params is None:
             params = {"quality": "360p"}
         replace(kwargs, params)
@@ -329,7 +472,7 @@ class XpcApi():
 
     def article_share(self, article_id, method='POST', headers=None, json=None, **kwargs):
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None:
             json = {
                 "allow_download": True,
@@ -344,18 +487,21 @@ class XpcApi():
         {"article_id":11295436,"amount":660}
         '''
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if json is None:
             json = {}
         append(kwargs, json, ['article_id', 'amount'])
         return request(method, url=XpcApi.URL_CREATE_REWARD_ORDER, headers=headers, json=json)
 
 
+    def public_status(self, article_id, method='POST', headers=None, json=None, **kwargs):
+        '''
+        '''
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        if json is None:
+            json = {}
+        append(kwargs, json, ['public_status'])
+        return request(method, url=XpcApi.URL_PUBLIC_STATUS.format(article_id), headers=headers, json=json)
 
-# 金山上传
-def upload_video_part(method='PUT', url='', headers=None, params=None, data=None):
-    return request(method, url, params=params, headers=headers, data=data)
 
-
-def upload_video(method='POST', url='', data=None, files=None):
-    return request(method, url, data=data, files=files)

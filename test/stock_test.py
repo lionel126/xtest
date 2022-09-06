@@ -11,7 +11,7 @@ url = f'{STOCK_BASE_URL}/nuxt-api-v2/search/query?stockType=footage&productTypes
 
 def test_stock():
     skus = []
-    for page in range(1, 2):
+    for page in range(1, 6):
         r = request('GET', url.format(page))
         pids = [{"productId": p['productId'], "storeCode": STORE_RESOURCE} for p in r.json()['list']]
         products = MallV2.product_detail(json=pids[:]).json()['data']
@@ -22,7 +22,7 @@ def test_stock():
             "storeCode": STORE_RESOURCE
         } for p in products for _, sku in p['data']['productSkuMap'].items()])
     
-    skus=[skus[0]]
+    # skus=[skus[0]]
     totalPrice = MallV2.trade_confirmation(skus=skus).json()['data']['result']['totalPrice']
     tradeNo = MallV2.trade_submit(skus=skus, totalPriceViewed=totalPrice, disableAccount=True).json()['data']['trade'][0]
     location = MallV2.trade_token(tradeNo=tradeNo).json()['data']['location']

@@ -1,4 +1,4 @@
-import time
+import time, copy
 import random
 from functools import wraps
 from requests import request
@@ -36,6 +36,7 @@ class Sess():
     URL_PHONE = f'{USER_CENTER_BASE_URL}/v2/user/info/phone'
     URL_UNBIND = f'{USER_CENTER_BASE_URL}/v2/user/third/unbind'
     URL_LOGOUT = f'{USER_CENTER_BASE_URL}/v2/user/auth/logout'
+    URL_VERIFY_INFO = f'{USER_CENTER_BASE_URL}/v2/user/verify/info'
     
     def __init__(self):
         self.headers = {'device-no': f'xpctest-{time.time()}'}
@@ -64,14 +65,14 @@ class Sess():
         replace(kwargs, json)
         # append(kwargs, json, ["phone","email","password","smsCaptcha","thirdTmpToken",])
         append(kwargs, json, ["phone"])
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         res = request(method, Sess.URL_LOGIN, headers=headers, json=json)
         # if 'Set-Authorization' in res.headers:
         #     self.HEADERS['authorization'] = res.headers['Set-Authorization']
         return res
     
     def logout(self, method='POST', headers=None, **kwargs):
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         replace(kwargs, headers)
         return request(method, url=Sess.URL_LOGOUT, headers=headers)
 
@@ -93,7 +94,7 @@ class Sess():
             captchaState:string	验证码state透传
         }
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         return request(method, Sess.URL_REGISTER, headers=headers, json=json)
 
     def user_info(self, method='GET', headers=None, params=None):
@@ -102,7 +103,7 @@ class Sess():
             query	int	是	查询类型, 0x0001 : 基础信息, 0x0010:扩展信息, 0x0100:第三方信息, 0x1000:认证信息.举例说明:同时需要基础信息和扩展信息则为0x0011,则query值为3,同时需要基础信息和认证信息的话则为0x1001,query值为9,如果需要全部信息则为0x1111,query值为15 以此类推
         }
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         return request(method, Sess.URL_USER_INFO, headers=headers, params=params)
     
     @set_auth
@@ -115,7 +116,7 @@ class Sess():
         }
         
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         res = request(method, Sess.URL_SEND_CAPTCHA, headers=headers, json=json)
 
         return res
@@ -129,7 +130,7 @@ class Sess():
             type	int	是	验证码类型 同发送验证码
         }
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         res = request(method, Sess.URL_VERIFY_CAPTCHA, headers=headers, json=json)
         self.cid = res.json()['data']['cid']
         return res
@@ -145,7 +146,7 @@ class Sess():
                 'cid': ''
             }
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         if json is None: 
             json={'applyReason': random.choice(['apply_00001', 'apply_00002', 'apply_00003', 'apply_00004', 'apply_00020'])}
             if json['applyReason'] == 'apply_00020':
@@ -166,7 +167,7 @@ class Sess():
             "credentialInHand": "https://www.xinpianchang.com/手持工牌.png" // 手持证明材料, 海外认证必传
         }
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         if json is None: 
             json={
                 "credential": "https://oss-xpc0.xpccdn.com/passport/assets/verify/11486339/2021/12/61c5773a64a95.jpg",
@@ -177,7 +178,7 @@ class Sess():
         return request(method, Sess.URL_APPLY_REALNAME, headers=headers, json=json)
 
     def reason(self, method='GET', headers=None):
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         return request(method, Sess.URL_REASON, headers=headers)
 
     def change_phone(self, method='PUT', headers=None, json=None):
@@ -189,7 +190,7 @@ class Sess():
             cid	string	是	调用发送验证码接口进行验证现有手机有效性的时候下发的 cid
         }
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         return request(method, Sess.URL_PHONE, headers=headers, json=json)
     
     def unbind(self, method='POST', headers=None, json=None):
@@ -198,7 +199,7 @@ class Sess():
             connectType	string	是	第三方登录类型, 微信:wechat,QQ:qq,微博:weibo,苹果:apple
         }
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         return request(method, Sess.URL_UNBIND, headers=headers, json=json)
     
     def verify_realname(self, method='POST', headers=None, json=None):
@@ -213,13 +214,18 @@ class Sess():
             "credentialInHand": "https://www.xinpianchang.com/手持工牌.png" // 手持证明材料, 海外认证必传
         }
         '''
-        if headers is None: headers = self.headers
+        if headers is None: headers = copy.deepcopy(self.headers)
         return request(method, Sess.URL_UNBIND, headers=headers, json=json)
+
+    def verify_info(self, method='GET', headers=None):
+        if headers is None: headers = copy.deepcopy(self.headers)
+        return request(method, Sess.URL_VERIFY_INFO, headers=headers)
 
 class InternalApi():
     '''内部接口 
     '''
     URL_VIP_NOTIFY = f'{USER_CENTER_BASE_URL}/v2/internal/user/vip/notify'
+    URL_USER_INFO = f'{USER_CENTER_BASE_URL}/v2/internal/user/verify/info/{{}}'
     @staticmethod
     def vip_notify(method='POST', json=None, **kwargs):
         '''
@@ -248,6 +254,21 @@ class InternalApi():
         }
         replace(kwargs, json)
         return request(method=method, url=InternalApi.URL_VIP_NOTIFY, json=json)
+
+    @staticmethod
+    def user_info(user_id, method='GET', params=None, **kwargs):
+        '''
+        userid	string	用户id
+        type	string	类型:creator/wb-creator/company/wb-company
+        '''
+        if params is None:
+            params = {
+                # 'userid': 10000000,
+                'type': 'creator'
+            }
+        replace(kwargs, params)
+        return request(method, InternalApi.URL_USER_INFO.format(user_id), params=params)
+    
 
 
 class Boss():

@@ -1,4 +1,4 @@
-import time
+import time, copy
 from requests import request
 from api.user_center import Sess
 from config import XPC_BASE_URL, COOKIE_AUTH, COOKIE_DEVICE_ID
@@ -51,7 +51,7 @@ class Xpc():
         
     def apply_team_member(self, method='POST', headers=None, cookies=None, data=None, **kwargs):
         if headers is None:
-            headers = self.headers
+            headers = copy.deepcopy(self.headers)
         if cookies is None:
             cookies = self.cookies
         if data is None: 
