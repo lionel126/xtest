@@ -26,6 +26,8 @@ class TestTradeConfirm():
     def setup_method(self):
         '''清空默认用户的优惠券和兑换券
         '''
+        # 访问订单列表 关闭超时订单 退回coupon&ticket
+        MallV2.trade_list()
         MallV2DB.delete_user_coupons()
         MallV2DB.delete_user_tickets()
 
@@ -1755,6 +1757,7 @@ class TestTradeSubmit():
     部分trade价格0
     '''
     def setup_method(self):
+        MallV2.trade_list()
         MallV2DB.delete_user_coupons()
         MallV2DB.delete_user_tickets()
 
@@ -2356,6 +2359,7 @@ class TestPay():
     '''
 
     def setup_method(self):
+        MallV2.trade_list()
         MallV2DB.delete_user_coupons()
         MallV2DB.delete_user_tickets()
 

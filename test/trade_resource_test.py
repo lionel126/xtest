@@ -81,6 +81,7 @@ class TestResourceTrade():
         # clear user coupons & tickets
         for i in range(math.ceil(total_reqs/reqs_per_user)):
             u = userId + i
+            MallV2.trade_list(userId=u)
             MallV2DB.delete_user_coupons(u)
             MallV2DB.delete_user_tickets(u)
         # 发优惠券
