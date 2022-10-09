@@ -3,7 +3,7 @@ import json as js
 from requests import request
 from config import XPC_API_BASE_URL, COOKIE_DEVICE_ID, COOKIE_AUTH
 from .user_center import Sess
-from utils.utils import replace, append, boss_gateway_token
+from utils.utils import replace, append, boss_gateway_token, get_internal_ip
 from datetime import datetime as dt
 
 BOSS_HEADERS = {
@@ -673,6 +673,8 @@ class XpcBackend():
         return request(method, url=XpcBackend.URL_ZPT_REVIEW.format(zpt_id), json=json, headers=headers)
 
 class XpcServerApi():
+    headers = {'host': XPC_API_BASE_URL.split('//')[1]}
+    auth = {'ZDLg': '7ftMq1zCMwQ5doks'}
     @staticmethod
     def zpt_status(zpt_id, method='POST', json=None, headers=None, **kwargs):
         '''
@@ -681,14 +683,16 @@ class XpcServerApi():
                 'display_count': 998 # required if status is completed
             }
         '''
-        url = f'{XPC_API_BASE_URL}/server-api/zpt/{{}}/status'
+        url = f'{get_internal_ip(XPC_API_BASE_URL)}/server-api/zpt/{{}}/status'
+        # url = f'{XPC_API_BASE_URL}/server-api/zpt/{{}}/status'
         if headers is None:
-            headers = {'host': '10.25.98.5'}
+            headers = copy.copy(XpcServerApi.headers)
         if json is None:
             json = {
                 'status': 'completed',
                 'display_count': 998,
-                'ZDLg': '7ftMq1zCMwQ5doks'
+                'from': 'new_zpt_recommend'
             }
+            json.update(XpcServerApi.auth)
         replace(kwargs, json)
         return request(method, url=url.format(zpt_id), headers=headers, json=json)

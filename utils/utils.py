@@ -184,3 +184,8 @@ def generate_id():
 def parse_url(url:str):
     r = urlparse(url)
     return f'{r.scheme}://{r.netloc}{r.path}'
+
+def get_internal_ip(url:str):
+    if url == config.XPC_API_BASE_URL:
+        return config.INTERNAL_IP_XPC_API
+    return config.INTERNAL_IP_XPC_API

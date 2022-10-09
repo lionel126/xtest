@@ -12,6 +12,8 @@ MALL_BASE_URL = 'http://mall-test.xinpianchang.com'
 VIP_SITE_BASE_URL = 'https://vip-test.xinpianchang.com'
 PAY_SITE_BASE_URL = 'https://pay-test.xinpianchang.com'
 
+INTERNAL_IP_XPC_API = 'http://10.25.98.5'
+
 # case sensitive
 COOKIE_DEVICE_ID = 'TEST-Device_ID'
 COOKIE_AUTH = 'TEST-Authorization'

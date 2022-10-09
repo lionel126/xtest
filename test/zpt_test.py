@@ -11,7 +11,7 @@ from utils.utils import areq
 # article_id = 11297727
 # goods = [{"sku_id":f"{article_id}#2900","platform":12,"count":1}]
 
-def x_goods(article_id=11297568, price=2900):
+def x_goods(article_id=11297260, price=2900):
     return [{"sku_id":f"{article_id}#{price}","platform":12,"count":1}]
     article_ids = [i['resource']['id'] for i in XpcApi().article_list(10265312, page=2).json()['data']['list']]
     return [{"sku_id":f"{a}#2900","platform":12,"count":1} for a in article_ids]
@@ -100,12 +100,12 @@ def test_log_display():
     '''展示消耗次数
     todo: 并发 & 不同用户
     '''
-    zpt_ids = [2683,2684,2685,2686,2689]
+    zpt_ids = [2717,2718]
     print('>>>>>>>>>>>')
     count = collections.defaultdict(int)
     loop = 0
     s = XpcApi()
-    while loop < 100:
+    while loop < 2000:
         for page in range(1, 10):
             res = s.home_recommend(page=page)
             request_id = res.headers['X-Request-Id']
@@ -116,11 +116,12 @@ def test_log_display():
                         for tag in r['model']['attributes'].get('tags'): 
                             if tag['type']=='zpt':
                                 resource_id = tag['resource_id']
-                                # if resource_id in zpt_ids:
-                                # zpts.append(tag['resource_id'])
-                                # aids.append(r['model']['resource']['id'])
-                                s.log(resource_id=resource_id, request_id=request_id)
-                                count[resource_id] += 1
+                                print(resource_id, resource_id in zpt_ids)
+                                if resource_id in zpt_ids:
+                                    # zpts.append(tag['resource_id'])
+                                    # aids.append(r['model']['resource']['id'])
+                                    s.log(resource_id=resource_id, request_id=request_id)
+                                    count[resource_id] += 1
             print(f'{count=}')            
         loop += 1
     print(f'<<<<<<<<<{count=}')
@@ -164,10 +165,14 @@ async def test_log_clicked():
 def test_finish_zpt():
     '''todo
     '''
-    l4 = ['2711','2710','2708','2707','2706','2705','2703','2702','2701','2700','2699','2697','2696','2695','2693']
+    l4 = ['2708','2707','2706','2705','2703','2702','2701','2700','2699','2697','2696','2695','2693']
     ['2692','2691','2690','2688','2687','2680','2643','2566','2342','2341','2337','2332','2331','2330','2327','2326','2325','2324','2323','2322','2321','2320','2319','2318','2316','2315','2314','2313','2312','2303','2300','2295',]
+    l4 = [2692,2691,2690,2688,2687,2314,]
+    l4 = [2643,2566,2342,2341,2332,2327,2323,2300,2295]
+    l4 = [2331, 2330, 2326, 2324, 2322, 2321, 2319, ]
     for zpt_id in l4:
-        XpcServerApi.zpt_status(zpt_id)
+        XpcServerApi.zpt_status(zpt_id, status='working', display_count='$DEL')
+        XpcServerApi.zpt_status(zpt_id, status='completed')
 
 # def test_weight():
 #     '''
