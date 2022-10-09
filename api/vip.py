@@ -1,22 +1,22 @@
 from requests import request
-from config import VIP_BASE_URL
+from config import VIP_CENTER_BASE_URL
 from utils.utils import replace, append
 
-URL_WX_SUBSCRIBE = f'{VIP_BASE_URL}/__door/vip/trigger_wx_subscribe_by_user_id'
-URL_WX_PAPAY = f'{VIP_BASE_URL}/__door/vip/trigger_wx_subscribe_notify_by_user_id'
+URL_WX_SUBSCRIBE = f'{VIP_CENTER_BASE_URL}/__door/vip/trigger_wx_subscribe_by_user_id'
+URL_WX_PAPAY = f'{VIP_CENTER_BASE_URL}/__door/vip/trigger_wx_subscribe_notify_by_user_id'
 
-URL_CRON_WX_SUBSCRIBE = f'{VIP_BASE_URL}/__door/vip/cron/wx_subscribe'
-URL_CRON_WX_PAPAY = f'{VIP_BASE_URL}/__door/vip/cron/papay_notice'
-URL_CRON_SNS_NOTICE = f'{VIP_BASE_URL}/__door/vip/cron/sns_notice'
-URL_CRON_SMS_NOTICE = f'{VIP_BASE_URL}/__door/vip/cron/sms_notice'
-URL_CRON_SEND_COUPON = f'{VIP_BASE_URL}/__door/vip/cron/send_coupon'
+URL_CRON_WX_SUBSCRIBE = f'{VIP_CENTER_BASE_URL}/__door/vip/cron/wx_subscribe'
+URL_CRON_WX_PAPAY = f'{VIP_CENTER_BASE_URL}/__door/vip/cron/papay_notice'
+URL_CRON_SNS_NOTICE = f'{VIP_CENTER_BASE_URL}/__door/vip/cron/sns_notice'
+URL_CRON_SMS_NOTICE = f'{VIP_CENTER_BASE_URL}/__door/vip/cron/sms_notice'
+URL_CRON_SEND_COUPON = f'{VIP_CENTER_BASE_URL}/__door/vip/cron/send_coupon'
 
-URL_TRIGGER_USER_STATUS = f'{VIP_BASE_URL}/__door/vip/trigger_status'
+URL_TRIGGER_USER_STATUS = f'{VIP_CENTER_BASE_URL}/__door/vip/trigger_status'
 
-URL_CANCEL_SUBSCRIBE = f'{VIP_BASE_URL}/vip/cancel_subscribe'
+URL_CANCEL_SUBSCRIBE = f'{VIP_CENTER_BASE_URL}/vip/cancel_subscribe'
 
-URL_GIFTCARD = f'{VIP_BASE_URL}/__door/giftcard/generate'
-URL_EXCHANGE_GIFTCARD = f'{VIP_BASE_URL}/gift_card/exchange'
+URL_GIFTCARD = f'{VIP_CENTER_BASE_URL}/__door/giftcard/generate'
+URL_EXCHANGE_GIFTCARD = f'{VIP_CENTER_BASE_URL}/gift_card/exchange'
 
 def trigger_status(method='POST', url=URL_TRIGGER_USER_STATUS, json=None, auth=None):
     '''

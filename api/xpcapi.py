@@ -3,15 +3,22 @@ import json as js
 from requests import request
 from config import XPC_API_BASE_URL, COOKIE_DEVICE_ID, COOKIE_AUTH
 from .user_center import Sess
-from utils.utils import replace, append
+from utils.utils import replace, append, boss_gateway_token
 from datetime import datetime as dt
 
-
+BOSS_HEADERS = {
+    "x-user-id": "1", 
+    "x-user-token": boss_gateway_token('abcdef') # appsecret 没校验
+}
 
 class XpcApi():
     '''
+    xpc api 
     '''
+    URL_HOME_RECOMMEND = f'{XPC_API_BASE_URL}/home/recommend'
+
     URL_FOLLOW = f'{XPC_API_BASE_URL}/user/{{}}/follow'
+    URL_ARTICLE_LIST = f'{XPC_API_BASE_URL}/user/10265312/articles'
 
     URL_UPLOAD_CHECK_PARAMS = f'{XPC_API_BASE_URL}/v2/article/checkParams'
     URL_UPLOAD_PREPARE = f'{XPC_API_BASE_URL}/v2/upload/prepare'
@@ -40,17 +47,26 @@ class XpcApi():
     URL_CREATE_REWARD_ORDER = f'{XPC_API_BASE_URL}/v2/article/createRewardDownloadTrade'
     URL_PUBLIC_STATUS = f'{XPC_API_BASE_URL}/v2/article/{{}}/publicStatus'
 
+    URL_SEM_SUBMIT = f'{XPC_API_BASE_URL}/v2/sem/submit'
+    URL_SEM_KEYWORDS = f'{XPC_API_BASE_URL}/v2/sem/keyword/{{}}'
+    URL_SEM_ORDER_LIST = f'{XPC_API_BASE_URL}/v2/sem/user/order/list'
+    
+    URL_ZPT_TRADE_CONFIRM = f'{XPC_API_BASE_URL}/v2/user/zpt/trade/confirm'
 
-    def __init__(self, phone='', password='999999', code='+86', sns_session=None):
-        self.headers={'user-agent': 'NewStudios/2.0.5 (com.xinpianchang.newstudios.enterprise; build:938; Android 7.1.2)'}
+    URL_LOG = f'{XPC_API_BASE_URL}/log'
+    
+
+    def __init__(self, phone='', password='999999', code='+86', sns_session=None, ua=None, accept_version=None):
+        self.headers = {
+            'user-agent': 'NewStudios/2.0.8 (com.xinpianchang.newstudios.enterprise; build:938; Android 7.1.2)' if not ua else ua,
+            'accept-version': '2.1.7' if not accept_version else accept_version
+        }
         if sns_session:
             self.headers['device-id'] = sns_session.cookies[COOKIE_DEVICE_ID]
             self.headers['authorization'] = sns_session.cookies[COOKIE_AUTH]
         if phone:
-            self.login(phone, password, code)
-        
-
-        
+            user = self.login(phone, password, code)
+            self.user_id = user['id']
 
     def login(self, phone, password='999999', code='+86'):
         j = {
@@ -62,14 +78,42 @@ class XpcApi():
         s = Sess()
         self.session = s
         r = s.login(json=j)
+        user = r.json()['data']['user']
+        # self.user_id = user['id']
         self.headers.update(s.headers)
         self.headers['device-id'] = s.headers['device-no']
         del self.headers['device-no']
+        return user
 
     def logout(self):
         '''
         '''
         self.session.logout()
+
+    def home_recommend(self, method='GET', params=None, headers=None, **kwargs):
+        '''
+        '''
+        if headers is None:
+            headers = copy.copy(self.headers)
+        if params is None:
+            params={
+                'page': 1,
+                'pageSize': 10
+            }
+        replace(kwargs, params)
+        return request(method, url=XpcApi.URL_HOME_RECOMMEND, headers=headers, params=params)
+
+    def article_list(self, user_id, method='GET', params=None, **kwargs):
+        '''temporary
+        '''
+        if params is None:
+            params = {
+                'is_hide_in_space': 0,
+                'return_struct_type': 'user_home'
+            }
+        append(kwargs, params, ['page'])
+        return request(method=method, url=XpcApi.URL_ARTICLE_LIST.format(user_id), params=params)
+
 
     def follow(self, user_id, method='POST', headers=None):
         if headers is None:
@@ -96,6 +140,7 @@ class XpcApi():
             headers=headers,
             params=params
         )
+
     def audit_article(self, article_id, method='POST', headers=None, json=None, **kwargs):
         '''管理员审核作品
         '''
@@ -103,7 +148,7 @@ class XpcApi():
             headers = copy.deepcopy(self.headers)
         if json is None:
             # 评级差 审核通过
-            json = {"quality":3,"is_audit":1}
+            json = {"quality": 3, "is_audit": 1}
         replace(kwargs, json, headers)
         return request(method, url=XpcApi.URL_AUDIT_ARTICLE.format(article_id), headers=headers, json=json)
 
@@ -142,12 +187,12 @@ class XpcApi():
         if json is None:
             json = {
                 "fileSize": 0,
-                "filePartSize": 0, 
+                "filePartSize": 0,
                 "key": "filename.mp4",
                 "fileMimeType": [
                     "video/mp4"
                 ],
-                "fileUploadAction":"createPublicVideo"
+                "fileUploadAction": "createPublicVideo"
             }
         replace(kwargs, json, headers)
         # append(kwargs, json, ['filePartSize'])
@@ -185,14 +230,16 @@ class XpcApi():
                 "uploadNo": ""
             }
         if 'partCount' in kwargs:
-            l = [f'<Part><PartNumber>{i+1}</PartNumber><ETag></ETag></Part>' for i in range(kwargs['partCount'])]
-            body = '<CompleteMultipartUpload>{}</CompleteMultipartUpload>'.format(''.join(l))
+            l = [
+                f'<Part><PartNumber>{i+1}</PartNumber><ETag></ETag></Part>' for i in range(kwargs['partCount'])]
+            body = '<CompleteMultipartUpload>{}</CompleteMultipartUpload>'.format(
+                ''.join(l))
             kwargs['body'] = body
         replace(kwargs, json, headers)
         return request(method, XpcApi.URL_UPLOAD_FINISH, headers=headers, json=json)
 
-
     # go-xpc-api v2 upload api
+
     def check_params(self, method='POST', headers=None, json=None, **kwargs):
         '''
         :param json: {
@@ -324,16 +371,16 @@ class XpcApi():
             json = {
                 'title': f'xpctest🐶测试edit{subfix}',
                 'cover': 'https://oss-xpc0.xpccdn.com/uploadfile/article/auto-cover/2022/3/14/fb89f46b-d4fe-42c6-a5bf-5c0f76d3fb1e.jpeg',
-                'categories': [{'parent_id': 1, 'child_id': 2}], 
-                'tags': ['定格'], 
-                'is_reproduce': False, 
-                'allow_comment': True, 
-                'danmaku': False, 
-                'is_private': False, 
+                'categories': [{'parent_id': 1, 'child_id': 2}],
+                'tags': ['定格'],
+                'is_reproduce': False,
+                'allow_comment': True,
+                'danmaku': False,
+                'is_private': False,
                 'allow_download_type': 'all',
                 'allow_download_flags': {
-                    'team': True, 
-                    'vip': True, 
+                    'team': True,
+                    'vip': True,
                     'reward': False
                 },
                 'reward_amounts': [660, 880, 8880],
@@ -343,7 +390,7 @@ class XpcApi():
                 'allow_vmovier_recommend': True,
                 'award': '', 'external_urls': [],
                 'team_users': [],
-                'stills': {'delete': [], 'update': [], 'insert': []}, 
+                'stills': {'delete': [], 'update': [], 'insert': []},
                 'quality': 0
             }
         replace(kwargs, json, headers)
@@ -352,38 +399,38 @@ class XpcApi():
     def publish_article(self, method='POST', headers=None, json=None, **kwargs):
         '''
         '''
-        subfix = dt.now().strftime('%W %j %a %S.%f')
+        subfix = dt.now().strftime('%y%b%d %H:%M:%S.%f %W%a%j')
         if headers is None:
             headers = copy.deepcopy(self.headers)
         if json is None:
             json = {
-                'title': f'xpctest🐶测试发布{subfix}',
-                'cover': 'https://oss-xpc0.xpccdn.com/uploadfile/article/auto-cover/2022/3/14/fb89f46b-d4fe-42c6-a5bf-5c0f76d3fb1e.jpeg',
-                'categories': [{'parent_id': 1, 'child_id': 2}], 
-                'tags': ['定格'], 
-                'is_reproduce': False, 
-                'allow_comment': True, 
-                'danmaku': False, 
-                'is_private': False, 
+                'title': f'🐶{subfix}',
+                'cover': '', # https://oss-xpc0.xpccdn.com/newupload/assets/article/cover/2022/5/6286fe3bd99fb
+                'categories': [{'parent_id': 1, 'child_id': 2}],
+                'tags': ['定格'],
+                'is_reproduce': False,
+                'allow_comment': True,
+                'danmaku': False,
+                'is_private': False,
                 'allow_download_type': 'all',
                 'allow_download_flags': {
-                    'team': True, 
-                    'vip': True, 
+                    'team': True,
+                    'vip': True,
                     'reward': False
                 },
-                'reward_amounts': [660, 880, 8880],
+                # 'reward_amounts': [660, 880, 8880],
                 'role_ids': [1],
                 'authorized_type': 0,
                 'description': '',
                 'allow_vmovier_recommend': True,
-                'award': '', 
-                'external_urls': [],
-                'team_users': [],
-                # 'stills': {'delete': [], 'update': [], 'insert': []}, 
-                'stills': [],
-                'quality': 0, 
+                # 'award': '',
+                # 'external_urls': [],
+                # 'team_users': [],
+                # 'stills': {'delete': [], 'update': [], 'insert': []},
+                # 'stills': [],
+                # 'quality': 0,
                 'type': 'selfhost',
-                'public_status': 1,
+                'public_status': 0,
                 'upload_no': ''
             }
         replace(kwargs, json, headers)
@@ -403,7 +450,8 @@ class XpcApi():
         '''
         if headers is None:
             headers = copy.deepcopy(self.headers)
-        if json is None: json={}
+        if json is None:
+            json = {}
         append(kwargs, json, ['download_token'])
         return request(method, url=XpcApi.URL_DOWNLOAD_BY_TOKEN, headers=headers, json=json)
 
@@ -493,9 +541,9 @@ class XpcApi():
         append(kwargs, json, ['article_id', 'amount'])
         return request(method, url=XpcApi.URL_CREATE_REWARD_ORDER, headers=headers, json=json)
 
-
     def public_status(self, article_id, method='POST', headers=None, json=None, **kwargs):
-        '''
+        '''修改公开作品的发布状态
+        0公开发布, 1主页隐藏, 2仅分享可见
         '''
         if headers is None:
             headers = copy.deepcopy(self.headers)
@@ -504,4 +552,143 @@ class XpcApi():
         append(kwargs, json, ['public_status'])
         return request(method, url=XpcApi.URL_PUBLIC_STATUS.format(article_id), headers=headers, json=json)
 
+    def sem_submit(self, method='POST', headers=None, json=None, **kwargs):
+        '''sem 下单
+        :param json:  
+        {
+            "article_id": 11297576, 
+            "keyword_id": 2, 
+            "position": 11,
+            "date_list": ["2022-09-08 19:00:00", "2022-09-08 21:00:00"]
+        }
+        '''
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        if json is None:
+            json = {
+                "article_id": 0, 
+                "keyword_id": 0, 
+                "position": 0,
+                "date_list": ["2022-09-08 19:00:00", "2022-09-08 21:00:00"]
+            }
+        replace(kwargs, json)
+        return request(method, url=XpcApi.URL_SEM_SUBMIT, headers=headers, json=json)
 
+    def sem_keywords(self, article_id, method='GET', headers=None):
+        '''作品相关的sem词 
+        '''
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        return request(method, url=XpcApi.URL_SEM_KEYWORDS.format(article_id), headers=headers)
+
+    def sem_order_list(self, method='GET', headers=None):
+        '''sem 订单列表
+        '''
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        return request(method, url=XpcApi.URL_SEM_ORDER_LIST, headers=headers)
+
+    def zpt_trade_confirm(self, method='POST', data=None, headers=None, **kwargs):
+        '''
+        '''
+        if data is None:
+            data = {
+                'article_id': 0,
+                'price': 2800
+            }
+        if headers is None:
+            headers = copy.deepcopy(self.headers)
+        replace(kwargs, data, headers)
+        return request(method=method, url=XpcApi.URL_ZPT_TRADE_CONFIRM, data=data, headers=headers)
+
+    def log(self, method='POST', json=None, headers=None, **kwargs):
+        '''上报行为: 作品通展示/作品通播放
+        '''
+        if headers is None:
+            headers = copy.copy(self.headers)
+        if json is None:
+            json = {
+                "event_extend": {
+                    "from": "首页-推荐",
+                    "number": "0",
+                    "request_id": "NQfTUK5Kx6vj3UatQ3i6iVM3TB0XGGOP",
+                    "type": "作品通大卡片（播放器居中）"
+                },
+                "event_source": None,
+                "event_type": "display",
+                "event_value": None,
+                "resource_id": "2615",
+                "resource_type": "zpt"
+            }
+        replace(kwargs, json, headers)
+        return request(method, url=XpcApi.URL_LOG, json=json, headers=headers)
+
+class XpcBackend():
+    '''
+    xpcapi boss接口
+    #todo: 登录
+    '''
+    URL_SEM_LIST = f'{XPC_API_BASE_URL}/backend/sem/order/list'
+    URL_ZPT_REVIEW = f'{XPC_API_BASE_URL}/backend/zpt/{{}}/review'
+    URL_ZPT_LIST = f'{XPC_API_BASE_URL}/backend/zpt'
+
+    def sem_order_list(self, method='GET', params=None, headers=None, **kwargs):
+        '''
+        :param params: userids=10265312%2C10000010&status=1&page=1&pageSize=10
+        '''
+        if headers is None:
+            headers = copy.copy(BOSS_HEADERS)
+        if params is None:
+            params = {
+                'userids': '10265312,10000010',
+                'status': 1,
+                'page': 1,
+                'pageSize': 10
+            }
+        replace(kwargs, params, headers)
+        return request(method=method, url=XpcBackend.URL_SEM_LIST, params=params, headers=headers)
+
+    def zpt_list(self, method='GET', params=None, headers=None, **kwargs):
+        if headers is None:
+            headers = copy.copy(BOSS_HEADERS)
+        if params is None:
+            params = {
+                'status':0
+            }
+        replace(kwargs, params, headers)
+        append(kwargs, params, ['user_ids'])
+        return request(method, url=XpcBackend.URL_ZPT_LIST, params=params, headers=headers)
+
+    def zpt_review(self, zpt_id, method='PUT', json=None, headers=None, **kwargs):
+        '''
+        '''
+        if headers is None:
+            headers = copy.copy(BOSS_HEADERS)
+        if json is None:
+            json={
+                'is_allow': True
+            }
+        replace(kwargs, json, headers)
+        append(kwargs, json, ['reason'])
+        return request(method, url=XpcBackend.URL_ZPT_REVIEW.format(zpt_id), json=json, headers=headers)
+
+class XpcServerApi():
+    @staticmethod
+    def zpt_status(zpt_id, method='POST', json=None, headers=None, **kwargs):
+        '''
+        :param json:{
+                'status': 'completed', # required, completed or working
+                'display_count': 998 # required if status is completed
+            }
+        '''
+        url = f'{XPC_API_BASE_URL}/server-api/zpt/{{}}/status'
+        if headers is None:
+            headers = {'host': '10.25.98.5'}
+        if json is None:
+            json = {
+                'status': 'completed',
+                'display_count': 998,
+                'ZDLg': '7ftMq1zCMwQ5doks'
+            }
+        replace(kwargs, json)
+        return request(method, url=url.format(zpt_id), headers=headers, json=json)

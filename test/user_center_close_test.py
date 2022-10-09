@@ -67,6 +67,9 @@ def f(apply_no, operate, code, success):
     assert j['code'] == code
     assert j['success'] is success
 
+def test_login():
+    login()
+
 class TestUserCloseWithoutAuth():
     '''不需要登录的测试用例
     '''

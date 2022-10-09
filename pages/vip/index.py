@@ -2,7 +2,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from pages.base import Base
-from config import VIP_BASE_URL
+from config import VIP_SITE_BASE_URL
 
 
 class Index(Base):
@@ -14,7 +14,7 @@ class Index(Base):
     locator_payment_layer_popup = (By.CSS_SELECTOR, 'div.payment-layer-popup')
 
     def load(self):
-        self.driver.get(VIP_BASE_URL)
+        self.driver.get(VIP_SITE_BASE_URL)
 
     def order(self, sku="v_general_month_subscribe"):
 

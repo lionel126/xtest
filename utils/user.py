@@ -1,4 +1,5 @@
 from api import testapi
+from api.user_center import Sess
 from config import LOCAL_IP
 import time
 
@@ -48,3 +49,46 @@ def vip_status(user_id):
         return r['data']
     return {}
 
+
+def register(code=None, phone=None):
+    '''
+    return {
+        'data':{
+            'user': {
+                'regionCode': '',
+                'phone': ''
+            }
+        }
+    }
+    '''
+    if code is None or phone is None:
+        code, phone = get_available_phone()
+    s = Sess()
+    s.send_captcha(json={'regionCode': code, 'phone': phone, 'type': 5})
+
+    skip_tencent_captcha(s.headers['authorization'])
+    r = s.register(json={'nickname': f'puppet{phone[-4:]}', 'regionCode': code, 'phone': phone, 'smsCaptcha': '000000', 'quickMode': False})
+    # assert r.status_code == 201
+    # j = r.json()
+    # assert j['code'] == 'SUCCESS'
+    # return j['data']['user']
+    return r
+
+def login(code=None, phone=None):
+    '''
+
+    return user, session
+    '''
+    if not (phone and code):
+        u = register().json()['data']['user']
+        code, phone= u['regionCode'], u['phone']
+    j = {
+        "type": "phone",
+        "regionCode": code,
+        "phone": phone,
+        "password": "999999"
+    }
+    s = Sess()
+    r = s.login(json=j)
+    assert r.status_code == 200
+    return r.json()['data']['user'], s

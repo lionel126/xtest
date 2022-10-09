@@ -2,7 +2,7 @@
 import time
 import sys
 import config
-from config import USER_ID, STORE1, BASE_URL, X_USER_TOKEN
+from config import USER_ID, STORE1, MALLV2_BASE_URL, X_USER_TOKEN
 from requests import request
 from utils.utils import replace, append, boss_gateway_token, log
 from functools import wraps, update_wrapper
@@ -17,40 +17,40 @@ MANAGER_HEADERS = {
 
 # log = _get_logger(__name__)
 class Url():
-    product_detail = BASE_URL + '/api/product/detail'
+    product_detail = MALLV2_BASE_URL + '/api/product/detail'
 
     # cart
-    cart_list = BASE_URL + '/intranet/cart/list'
-    cart_add = BASE_URL + '/intranet/cart/add'
-    cart_update_quantity = BASE_URL + '/intranet/cart/updateQuantity'
-    cart_select = BASE_URL + '/intranet/cart/select'
-    cart_remove = BASE_URL + '/intranet/cart/remove'
+    cart_list = MALLV2_BASE_URL + '/intranet/cart/list'
+    cart_add = MALLV2_BASE_URL + '/intranet/cart/add'
+    cart_update_quantity = MALLV2_BASE_URL + '/intranet/cart/updateQuantity'
+    cart_select = MALLV2_BASE_URL + '/intranet/cart/select'
+    cart_remove = MALLV2_BASE_URL + '/intranet/cart/remove'
 
-    manage_coupon_create = BASE_URL + '/manage/coupon/create'
-    manage_coupon_update = BASE_URL + '/manage/coupon/update'
-    manage_coupon_delete = BASE_URL + '/manage/coupon/delete'
-    manage_coupon_shelf = BASE_URL + '/manage/coupon/shelf'
-    manage_coupon_info = BASE_URL + '/manage/coupon/info'
-    manage_coupon_list = BASE_URL + '/manage/coupon/list'
-    manage_coupon_offer = BASE_URL + '/manage/coupon/receive'
-    manage_user_coupon_list = BASE_URL + '/manage/coupon/user/list'
-    manage_coupon_info = BASE_URL + '/manage/coupon/info'
-    namage_ticket_create = BASE_URL + '/manage/ticket/create'
-    manage_ticket_offer = BASE_URL + '/manage/ticket/receive'
+    manage_coupon_create = MALLV2_BASE_URL + '/manage/coupon/create'
+    manage_coupon_update = MALLV2_BASE_URL + '/manage/coupon/update'
+    manage_coupon_delete = MALLV2_BASE_URL + '/manage/coupon/delete'
+    manage_coupon_shelf = MALLV2_BASE_URL + '/manage/coupon/shelf'
+    manage_coupon_info = MALLV2_BASE_URL + '/manage/coupon/info'
+    manage_coupon_list = MALLV2_BASE_URL + '/manage/coupon/list'
+    manage_coupon_offer = MALLV2_BASE_URL + '/manage/coupon/receive'
+    manage_user_coupon_list = MALLV2_BASE_URL + '/manage/coupon/user/list'
+    manage_coupon_info = MALLV2_BASE_URL + '/manage/coupon/info'
+    namage_ticket_create = MALLV2_BASE_URL + '/manage/ticket/create'
+    manage_ticket_offer = MALLV2_BASE_URL + '/manage/ticket/receive'
 
-    coupon_receive = BASE_URL + '/intranet/coupon/receive'
-    coupon_list = BASE_URL + '/intranet/coupon/list'
-    ticket_list = BASE_URL + '/intranet/user_ticket'
-    ticket_info = BASE_URL + '/intranet/userTicket/{id}/info'
+    coupon_receive = MALLV2_BASE_URL + '/intranet/coupon/receive'
+    coupon_list = MALLV2_BASE_URL + '/intranet/coupon/list'
+    ticket_list = MALLV2_BASE_URL + '/intranet/user_ticket'
+    ticket_info = MALLV2_BASE_URL + '/intranet/userTicket/{id}/info'
 
-    trade_confirmation = BASE_URL + '/intranet/trade/confirmation'
-    trade_submit = BASE_URL + '/intranet/trade/submit'
-    trade_detail = BASE_URL + '/intranet/trade/detail/{tradeNO}'
-    trade_token = BASE_URL + '/intranet/trade/link'
-    trade_cancel = BASE_URL + '/intranet/trade/cancel/{tradeNo}'
-    trade_list = BASE_URL + '/intranet/trade/list'
+    trade_confirmation = MALLV2_BASE_URL + '/intranet/trade/confirmation'
+    trade_submit = MALLV2_BASE_URL + '/intranet/trade/submit'
+    trade_detail = MALLV2_BASE_URL + '/intranet/trade/detail/{tradeNO}'
+    trade_token = MALLV2_BASE_URL + '/intranet/trade/link'
+    trade_cancel = MALLV2_BASE_URL + '/intranet/trade/cancel/{tradeNo}'
+    trade_list = MALLV2_BASE_URL + '/intranet/trade/list'
 
-    pay = BASE_URL + '/intranet/trade/pay'
+    pay = MALLV2_BASE_URL + '/intranet/trade/pay'
 
     #
     # order

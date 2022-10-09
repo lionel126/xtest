@@ -18,7 +18,7 @@ def get_file(file=FILE):
     file_size = os.path.getsize(file)
     return os.path.split(file)[1], file_size
 
-def upload(j:dict, file_part_size=FilePartSize):
+def upload(j:dict, file=FILE, file_part_size=FilePartSize):
     '''
     :param j: upload_token 响应体
     '''
@@ -27,7 +27,7 @@ def upload(j:dict, file_part_size=FilePartSize):
     signatures = j['data']['original']['signature']
     uploadId = j['data']['original']['uploadId']
     partCount = j['data']['original']['partCount']
-    with open(FILE, 'rb') as f:
+    with open(file, 'rb') as f:
         for i in range(partCount):
             partNumber = i + 1
             upload_video_part(

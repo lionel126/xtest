@@ -1,3 +1,5 @@
+import base64
+from hashlib import sha1
 from urllib.parse import urlparse
 from uuid import uuid4
 from aiohttp import ClientSession
@@ -143,16 +145,13 @@ def get_available_channel(channels: list, location: str, prefix: str='WX'):
     return channel
 
 
-def boss_gateway_token():
+def boss_gateway_token(appSecret='ef34b98f9e94dbb57469491148bdeacf7fd5bd59'):
     '''参考mallv2的admin中间件'''
-    import base64
-    from hashlib import sha1
 
     userInfo = '{ "id": "1", "username": "zhangsan", "nickname": "zhangsan", "email": "zhangsan@xinpianchang.com" }'
-    # userInfo = 'chenshengguo'
-    appSecret = 'ef34b98f9e94dbb57469491148bdeacf7fd5bd59'  # dev
-    appSecret = '6732ac43a7f5ddf07135ffb579008b9947cc8a5c'  # test
-    appSecret = '10eefa12f4a3a4a4dccb345677925a0dee5b967e' # prod
+    # appSecret = 'ef34b98f9e94dbb57469491148bdeacf7fd5bd59'  # dev
+    # appSecret = '6732ac43a7f5ddf07135ffb579008b9947cc8a5c'  # test
+    # appSecret = '10eefa12f4a3a4a4dccb345677925a0dee5b967e' # prod
     xUserToken = str(base64.b64encode(bytes(userInfo, 'utf-8')), 'utf-8') + \
         '.' + sha1(bytes(userInfo + '.' + appSecret, 'utf-8')).hexdigest()
     return xUserToken

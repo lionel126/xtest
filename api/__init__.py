@@ -4,4 +4,5 @@ from . import mallv2 as MallV2
 from .mallv2_data import MallV2DB, Data
 from .pay_admin import PayAdmin
 from . import search as Search
-from .xpcapi import XpcApi
+from .xpcapi import XpcApi, XpcBackend
+from . import mall as Mall

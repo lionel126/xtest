@@ -2,7 +2,7 @@ BASE_URL = 'http://192.168.4.200:5004/mall/v2'
 SEARCH_BASE_URL = 'http://192.168.4.200:5006/rpc/pub/v1/search'
 PAY_ADMIN_BASE_URL = 'https://pay-admin-wkm.vmovier.cc'
 USER_CENTER_BASE_URL = 'http://user-center.wkm.vmovier.cc/api'
-VIP_BASE_URL = 'http://192.168.4.200:5021'
+VIP_CENTER_BASE_URL = 'http://192.168.4.200:5021'
 
 TESTAPI_BASE = 'https://flask-dev.vmovier.cc/'
 DJANGO_BASE_URL = 'https://django-dev.vmovier.cc'
