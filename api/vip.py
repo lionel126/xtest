@@ -19,7 +19,7 @@ URL_GIFTCARD = f'{VIP_CENTER_BASE_URL}/__door/giftcard/generate'
 URL_EXCHANGE_GIFTCARD = f'{VIP_CENTER_BASE_URL}/gift_card/exchange'
 
 def trigger_status(method='POST', url=URL_TRIGGER_USER_STATUS, json=None, auth=None):
-    '''
+    '''同步到用户中心？？？？
     :param json:{
         'userId': 10000000,
         'group': 'sns'

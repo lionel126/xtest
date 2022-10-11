@@ -47,9 +47,11 @@ def test_order(pay):
 def test_review(pay):
     '''zpt下单 & 补单 & 审核通过
     '''
-    order_no = Mall.create_order(user_id=user_id, goods=x_goods()).json()['data']['order_no']
-    order = Mall.pay(order_no).json()['data']['pay']['order']
-    pay.fix(order)
+    start = 11297758
+    for i in range(start, start+1):
+        order_no = Mall.create_order(user_id=user_id, goods=x_goods(article_id=i)).json()['data']['order_no']
+        order = Mall.pay(order_no).json()['data']['pay']['order']
+        pay.fix(order)
     time.sleep(3)
     xb = XpcBackend()
     zpt_ids = [zpt['id'] for zpt in xb.zpt_list(user_ids=user_id).json()['data']['data']]
@@ -100,12 +102,14 @@ def test_log_display():
     '''展示消耗次数
     todo: 并发 & 不同用户
     '''
-    zpt_ids = [2717,2718]
+    zpt_ids = range(2717,2730)
+    new = [2717, 2721, 2727, 2728]
     print('>>>>>>>>>>>')
     count = collections.defaultdict(int)
+
     loop = 0
     s = XpcApi()
-    while loop < 2000:
+    while loop < 1:
         for page in range(1, 10):
             res = s.home_recommend(page=page)
             request_id = res.headers['X-Request-Id']
@@ -116,13 +120,13 @@ def test_log_display():
                         for tag in r['model']['attributes'].get('tags'): 
                             if tag['type']=='zpt':
                                 resource_id = tag['resource_id']
-                                print(resource_id, resource_id in zpt_ids)
-                                if resource_id in zpt_ids:
-                                    # zpts.append(tag['resource_id'])
-                                    # aids.append(r['model']['resource']['id'])
-                                    s.log(resource_id=resource_id, request_id=request_id)
-                                    count[resource_id] += 1
-            print(f'{count=}')            
+                                print(resource_id, resource_id in zpt_ids, resource_id in new if resource_id in zpt_ids else 'NA')
+                                # if resource_id in zpt_ids:
+                                # zpts.append(tag['resource_id'])
+                                # aids.append(r['model']['resource']['id'])
+                                s.log(resource_id=resource_id, request_id=request_id)
+                                count[resource_id] += 1
+            print(f'{count=}', flush=True)            
         loop += 1
     print(f'<<<<<<<<<{count=}')
 

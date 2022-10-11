@@ -4,10 +4,15 @@ import time, json
 import datetime as dt
 import pytest
 from api import vip, Data, MallV2, MallV2DB, PayAdmin, Url
+from api.user_center import InternalApi as UserInt
 from config import STORE_VIP
 from utils.utils import get_available_channel
 from utils import user as userutils
 from api.user_center import Sess, InternalApi
+
+
+def test_user_center_vip_status():
+    UserInt.vip_notify(user_id=10265312, type=1, flag=1, start_time='20220101', end_time='20230101')
 
 
 def test_sync_vip_status():
