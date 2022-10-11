@@ -109,8 +109,8 @@ def test_log_display():
 
     loop = 0
     s = XpcApi()
-    while loop < 1:
-        for page in range(1, 10):
+    while loop < 500000:
+        for page in range(1, 2):
             res = s.home_recommend(page=page)
             request_id = res.headers['X-Request-Id']
             zpts = []
@@ -120,7 +120,7 @@ def test_log_display():
                         for tag in r['model']['attributes'].get('tags'): 
                             if tag['type']=='zpt':
                                 resource_id = tag['resource_id']
-                                print(resource_id, resource_id in zpt_ids, resource_id in new if resource_id in zpt_ids else 'NA')
+                                print(resource_id, resource_id in zpt_ids, resource_id in new if resource_id in zpt_ids else 'NA', flush=True)
                                 # if resource_id in zpt_ids:
                                 # zpts.append(tag['resource_id'])
                                 # aids.append(r['model']['resource']['id'])
