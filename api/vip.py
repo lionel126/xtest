@@ -18,7 +18,9 @@ URL_CANCEL_SUBSCRIBE = f'{VIP_CENTER_BASE_URL}/vip/cancel_subscribe'
 URL_GIFTCARD = f'{VIP_CENTER_BASE_URL}/__door/giftcard/generate'
 URL_EXCHANGE_GIFTCARD = f'{VIP_CENTER_BASE_URL}/gift_card/exchange'
 
-def trigger_status(method='POST', url=URL_TRIGGER_USER_STATUS, json=None, auth=None):
+URL_VIP_INFOS = f'{VIP_CENTER_BASE_URL}/server-api/user/{{}}/vipInfos'
+
+def trigger_status(method='POST', url=URL_TRIGGER_USER_STATUS, json=None, auth=None, **kwargs):
     '''同步到用户中心？？？？
     :param json:{
         'userId': 10000000,
@@ -26,6 +28,8 @@ def trigger_status(method='POST', url=URL_TRIGGER_USER_STATUS, json=None, auth=N
     }
     '''
     if auth is None: auth = ('vmovier', 'ilovevmovier')
+    if json is None: json = {'userId': 0, 'group': ''}
+    replace(kwargs, json)
     return request(method, url, json=json, auth=auth)
 
 def wx_subsribe(method='POST', url=URL_WX_SUBSCRIBE, params=None, auth=None):
@@ -115,3 +119,9 @@ def exchange_giftcard(method='POST', url=URL_EXCHANGE_GIFTCARD, json=None):
     {"user_id":10265312,"card_category":80,"card_no":"1280331420892933"}
     '''
     return request(method, url, json=json)
+
+def vip_info(user_id, method='GET'):
+    '''server api
+    获取用户vip infos
+    '''
+    return request(method, url=URL_VIP_INFOS.format(user_id))

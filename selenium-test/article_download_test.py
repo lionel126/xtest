@@ -6,8 +6,6 @@ todo 目前测试分两步：
 
 '''
 import time
-from turtle import down
-
 import pytest
 from selenium.common.exceptions import NoSuchElementException
 from pages.passport.login import Login 

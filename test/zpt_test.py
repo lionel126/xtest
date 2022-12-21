@@ -47,7 +47,7 @@ def test_order(pay):
 def test_review(pay):
     '''zpt下单 & 补单 & 审核通过
     '''
-    start = 11297758
+    start = 11297759
     for i in range(start, start+1):
         order_no = Mall.create_order(user_id=user_id, goods=x_goods(article_id=i)).json()['data']['order_no']
         order = Mall.pay(order_no).json()['data']['pay']['order']

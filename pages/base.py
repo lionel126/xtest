@@ -2,9 +2,13 @@ from selenium import webdriver
 
 class Base():
     def __init__(self, driver=None):
+        '''
+        '''
         if not driver:
             options = webdriver.ChromeOptions()
-            self.driver = webdriver.Remote('http://192.168.3.89:4444', options=options)
+            # todo: 远程or本地 配置文件
+            # self.driver = webdriver.Remote('http://192.168.3.89:4444', options=options)
+            self.driver = webdriver.Chrome(options=options)
         else:
             self.driver = driver
 
