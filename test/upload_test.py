@@ -49,8 +49,7 @@ def test_publish_v2():
     r = app.check_params(title=f'article{now}')
     formToken = r.json()['data']['formToken']
     
-    # file = '/Users/csg/Movies/laoxie.mp4'
-    file = '/Users/csg/Movies/tbbt_S11E16_name.mp4'
+    file = '/Users/chensg/Movies/shenteng.mp4'
     file_size = os.path.getsize(file)
     file_name = os.path.split(file)[1]
     file_mime_type = mimetypes.guess_type(file)[0]

@@ -282,7 +282,7 @@ class XpcApi():
                     "parent_id": 69
                 }
             ],
-            "cover": "https://oss-xpc0.xpccdn.com/uploadfile/article/2022/4/8/43c9fdbeed489f30757162400825b62a",
+            "cover": "https://oss-xpc0.xpccdn.com/newupload/assets/article/cover/2022/4/626a2fc0b4cae",
             "danmaku": true,
             "is_private": false,
             "role_ids": [
