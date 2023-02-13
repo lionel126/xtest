@@ -8,6 +8,7 @@ XPC_BASE_URL = 'https://www-test.xinpianchang.com'
 PASSPORT_BASE_URL = 'https://passport-test.xinpianchang.com'
 STOCK_BASE_URL = 'https://stock-test.xinpianchang.com'
 MALL_BASE_URL = 'http://mall-test.xinpianchang.com'
+PAY_SERVER_BASE_URL = 'pay-server.vmovier.cc'
 
 VIP_SITE_BASE_URL = 'https://vip-test.xinpianchang.com'
 PAY_SITE_BASE_URL = 'https://pay-test.xinpianchang.com'
@@ -32,6 +33,8 @@ PAY_NOTICE_DELAY = 0
 # todo 每个app不一样才对？？ for mall_v2 boss接口. 此项目的用户中心boss接口也用了 用户中心没有做这个校验？
 X_USER_TOKEN = 'eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.ed5833edd7bb91dbb89bb3b0f99788db200fd052'
 LOCAL_IP = '103.219.187.42'
+
+LOCAL_CHROME = True
 
 USER_ID = 10265312
 USER_ID2 = 11111112
