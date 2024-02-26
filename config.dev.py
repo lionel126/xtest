@@ -29,3 +29,5 @@ STORE_VIP = 'vip_center'
 STORE5 = STORE_RESOURCE
 STORE_NOT_EXIST = 'store_not_exist_yhnmkijhasdf'
 SKU_ID_NOT_EXIST = 'sku-id-not-exist-izcvkjhqwer'
+
+PIC = '/Users/server/Pictures/3bafcfea-bd43-4fc3-92ff-efcc284bcd4e.jpeg'

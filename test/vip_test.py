@@ -12,7 +12,7 @@ from api.user_center import Sess, InternalApi
 
 
 def test_user_center_vip_status():
-    UserInt.vip_notify(user_id=10265312, type=2, flag=7, start_time='20220101', end_time='20230201')
+    UserInt.vip_notify(user_id=10000010, type=1, flag=1, start_time='20220101', end_time='20230201')
 
 
 def test_sync_vip_status():
