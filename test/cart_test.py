@@ -4,10 +4,10 @@ import random
 import math
 from config import STORE1, STORE3, STORE4, STORE_NOT_EXIST, SKU_ID_NOT_EXIST, USER_ID, USER_ID2, USER_ID3, STORE2
 from api import Data, MallV2, mallv2
-from utils.utils import get_logger
+from utils.utils import log
 import time
 
-log = get_logger(__name__)
+# log = _get_logger(__name__)
 
 # 购物车上限200
 CART_MAXIMUM = 200

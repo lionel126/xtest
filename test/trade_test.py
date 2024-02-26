@@ -1,19 +1,20 @@
 import inspect
+import time, math, random
+import copy
+import math
+import pytest
 from test.cart_test import CART_MAXIMUM, TestCartAdd as CA
 from test.cart_test import TestCartSelect as CS
-import pytest
 from api import Data, MallV2, MallV2DB, PayAdmin, Url
 from utils.utils import areq, get_available_channel, new_tag, trade_count, fake
 from config import STORE1, STORE2, STORE3, STORE4, STORE_NOT_EXIST, USER_ID, USER_ID2, PAY_NOTICE_DELAY
-import time, math, random
 from datetime import datetime, timedelta
-from utils.utils import get_logger
+from utils.utils import log
 from collections import defaultdict
 from itertools import combinations
-import copy
-import math
 
-log = get_logger(__name__)
+
+# log = _get_logger(__name__)
 
 class TestTradeConfirm():
     '''订单确认
@@ -26,6 +27,8 @@ class TestTradeConfirm():
     def setup_method(self):
         '''清空默认用户的优惠券和兑换券
         '''
+        # 访问订单列表 关闭超时订单 退回coupon&ticket
+        MallV2.trade_list()
         MallV2DB.delete_user_coupons()
         MallV2DB.delete_user_tickets()
 
@@ -1755,6 +1758,7 @@ class TestTradeSubmit():
     部分trade价格0
     '''
     def setup_method(self):
+        MallV2.trade_list()
         MallV2DB.delete_user_coupons()
         MallV2DB.delete_user_tickets()
 
@@ -2356,6 +2360,7 @@ class TestPay():
     '''
 
     def setup_method(self):
+        MallV2.trade_list()
         MallV2DB.delete_user_coupons()
         MallV2DB.delete_user_tickets()
 

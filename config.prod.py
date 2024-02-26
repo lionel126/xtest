@@ -1,19 +1,12 @@
-MALLV2_BASE_URL = 'http://10.25.98.5:5004/mall/v2'
+BASE_URL = 'http://10.23.84.8:5004/mall/v2'
 SEARCH_BASE_URL = 'http://10.25.98.5:5006/rpc/pub/v1/search'
-PAY_ADMIN_BASE_URL = 'https://pay-admin.vmovier.cc'
+PAY_ADMIN_BASE_URL = 'https://pay-admin.xinpianchang.com'
 USER_CENTER_BASE_URL = 'http://user-center.vmovier.cc/api'
 XPC_API_BASE_URL = 'https://app-test.xinpianchang.com'
 VIP_CENTER_BASE_URL = 'http://10.25.98.5:5021'
 XPC_BASE_URL = 'https://www-test.xinpianchang.com'
 PASSPORT_BASE_URL = 'https://passport-test.xinpianchang.com'
-STOCK_BASE_URL = 'https://stock-test.xinpianchang.com'
-MALL_BASE_URL = 'http://mall-test.xinpianchang.com'
-PAY_SERVER_BASE_URL = 'pay-server.vmovier.cc'
-
-VIP_SITE_BASE_URL = 'https://vip-test.xinpianchang.com'
-PAY_SITE_BASE_URL = 'https://pay-test.xinpianchang.com'
-
-INTERNAL_IP_XPC_API = 'http://10.25.98.5'
+STOCK_BASE_URL = 'https://stock.xinpianchang.com'
 
 # case sensitive
 COOKIE_DEVICE_ID = 'TEST-Device_ID'
@@ -34,8 +27,6 @@ PAY_NOTICE_DELAY = 0
 X_USER_TOKEN = 'eyAiaWQiOiAiMSIsICJ1c2VybmFtZSI6ICJ6aGFuZ3NhbiIsICJuaWNrbmFtZSI6ICJ6aGFuZ3NhbiIsICJlbWFpbCI6ICJ6aGFuZ3NhbkB4aW5waWFuY2hhbmcuY29tIiB9.ed5833edd7bb91dbb89bb3b0f99788db200fd052'
 LOCAL_IP = '103.219.187.42'
 
-LOCAL_CHROME = True
-
 USER_ID = 10265312
 USER_ID2 = 11111112
 USER_ID3 = 10006752
@@ -49,5 +40,3 @@ STORE_VIP = 'vip_center'
 STORE5 = STORE_RESOURCE
 STORE_NOT_EXIST = 'store_not_exist_yhnmkijhasdf'
 SKU_ID_NOT_EXIST = 'sku-id-not-exist-izcvkjhqwer'
-
-PIC = '/Users/server/Pictures/3bafcfea-bd43-4fc3-92ff-efcc284bcd4e.jpeg'

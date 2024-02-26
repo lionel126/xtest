@@ -1,4 +1,4 @@
-from utils.utils import get_available_channel, get_logger
+from utils.utils import get_available_channel, log
 from api import MallV2, MallV2DB, Search, PayAdmin, Url
 from utils.utils import areq
 from config import STORE_RESOURCE
@@ -8,7 +8,7 @@ import copy
 import math
 import time
 
-log = get_logger(__name__)
+# log = _get_logger(__name__)
 
 class TestResourceTrade():
     """
@@ -81,6 +81,7 @@ class TestResourceTrade():
         # clear user coupons & tickets
         for i in range(math.ceil(total_reqs/reqs_per_user)):
             u = userId + i
+            MallV2.trade_list(userId=u)
             MallV2DB.delete_user_coupons(u)
             MallV2DB.delete_user_tickets(u)
         # 发优惠券

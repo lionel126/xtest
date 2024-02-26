@@ -1,13 +1,10 @@
-MALL v2 TEST
+XPC API TEST
 
-## 环境
-python3.9 -m venv .venv
-pip install -r requirements.txt
 
 ## 代理配置
 export http_proxy=http://192.168.8.27:8000; export https_proxy=http://192.168.8.27:8000;
 export REQUESTS_CA_BUNDLE="./utils/mitmproxy-ca-cert.pem"; 
-export SSL_CERT_FILE=./utils/mitmproxy-ca-cert.pem;
+export SSL_CERT_FILE="./utils/mitmproxy-ca-cert.pem";
 export CURL_CA_BUNDLE="./utils/mitmproxy-ca-cert.pem";
 # 打印日志
 pytest --log-cli-level=INFO <test-file.py>
@@ -83,6 +80,7 @@ case 怎么写：
     封装，没办法覆盖所有参数的不传 -> 参数可变类型：None走默认值, 非None直接用
 供应商处下单数&下载数 避免重复扣款
 购物车sku有效/无效变化 与前端不同步
+优惠券和兑换券的删除导致订单列表报错 订单无法被取消; 取消支付中订单
 
 
 Aug 19: 下单接口修改：ticket的使用；

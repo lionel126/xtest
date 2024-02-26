@@ -1,0 +1,5 @@
+[node]
+detect-drivers = false
+[[node.driver-configuration]]
+display-name = "Chrome"
+stereotype = "{\"browserName\": \"chrome\",\"browserVersion\": \"103.0.5060.53\",\"goog:chromeOptions\": {\"debuggerAddress\": \"localhost:9222\"},\"pageLoadStrategy\": \"normal\",\"platformName\": \"MAC\",\"proxy\": {}}"

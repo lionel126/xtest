@@ -1,3 +1,6 @@
+import base64
+from hashlib import sha1
+from urllib.parse import urlparse
 from uuid import uuid4
 from aiohttp import ClientSession
 import asyncio
@@ -5,13 +8,17 @@ import logging
 import logging.handlers
 from requests import request
 import faker
+import random
+from datetime import datetime, timedelta
+from . import const
+import config
 
 fake: faker.Faker = faker.Faker(['zh_CN', 'en_US'])
 
 
-def get_logger(name='root', level=logging.INFO):
+def _get_logger(name='mall_v2-test', level=logging.INFO):
     log_handler = logging.handlers.TimedRotatingFileHandler(
-        'logs/mallv2-test.log', when='midnight')
+        f'logs/{name}.log', when='midnight')
     formatter = logging.Formatter(
         '%(asctime)s %(levelname)s %(pathname)s:%(lineno)d %(message)s',
         '%b %d %H:%M:%S')
@@ -21,7 +28,7 @@ def get_logger(name='root', level=logging.INFO):
     logger.addHandler(log_handler)
     logger.setLevel(level)
     return logger
-
+log = _get_logger()
 
 def new_tag():
     return f'tag-{uuid4()}'
@@ -44,13 +51,19 @@ def trade_count(storeCodes):
         s.add(merchant[sc])
     return len(s)
 
+async def req(session, **kwargs):
+    res = await session.request(**kwargs)
+    res._body = await res.read()
+    return res
+
 
 async def areq(req_kwargs_list):
     '''async request
     '''
     async with ClientSession(trust_env=True) as session:
-        task = [session.request(**ka) for ka in req_kwargs_list]
-        res = await asyncio.gather(*task)
+        # task = [session.request(**ka) for ka in req_kwargs_list]
+        task = [req(session, **ka) for ka in req_kwargs_list]
+        res = await asyncio.gather(*task, return_exceptions=True)
         return res
 
 # not working for list
@@ -81,14 +94,24 @@ async def areq(req_kwargs_list):
 
 def replace(kwargs, *args):
     for arg in args:
+        to_be_deleted = []
         for k in arg:
             if k in kwargs:
-                arg[k] = kwargs[k]
+                if kwargs[k] == config.DEL:
+                    to_be_deleted.append(k)                    
+                else:
+                    arg[k] = kwargs[k]
             elif isinstance(arg[k], dict):
                 replace(kwargs, arg[k])
             elif isinstance(arg[k], list):
-                for ar in arg[k]:
-                    replace(kwargs, ar)
+                # for ar in arg[k]:
+                #     replace(kwargs, ar)
+                pass
+            
+        if to_be_deleted:
+            # print(to_be_deleted)
+            for k in to_be_deleted:
+                del arg[k]
 
 
 def append(kwargs, d: dict, keys):
@@ -98,8 +121,10 @@ def append(kwargs, d: dict, keys):
             d[k] = v
 
 
-def get_available_channel(channels: list, location: str):
-    '''返回开发环境能用的channel'''
+def get_available_channel(channels: list, location: str, prefix: str='WX'):
+    '''返回开发环境能用的channel
+    :param prefix: in ('WX', 'JD', 'ZFB')
+    '''
     channels = [c for c in channels if c['channelCode'] not in (
         'WX_INNER_005',
     #     # 'ZFB_WEB_005',
@@ -107,7 +132,7 @@ def get_available_channel(channels: list, location: str):
         'JD_QR_005',
     #     # 'JD_H5_005',
     #     # 'JD_WEB_005'
-    )]
+    ) and c['channelCode'].startswith(prefix)]
 
     channel = channels[fake.random_int(0, len(channels)-1)]
 
@@ -120,15 +145,47 @@ def get_available_channel(channels: list, location: str):
     return channel
 
 
-def boss_gateway_token():
+def boss_gateway_token(appSecret='ef34b98f9e94dbb57469491148bdeacf7fd5bd59'):
     '''参考mallv2的admin中间件'''
-    import base64
-    from hashlib import sha1
 
     userInfo = '{ "id": "1", "username": "zhangsan", "nickname": "zhangsan", "email": "zhangsan@xinpianchang.com" }'
-    userInfo = 'chenshengguo'
-    appSecret = 'ef34b98f9e94dbb57469491148bdeacf7fd5bd59'  # dev
-    appSecret = '6732ac43a7f5ddf07135ffb579008b9947cc8a5c'  # test
+    # appSecret = 'ef34b98f9e94dbb57469491148bdeacf7fd5bd59'  # dev
+    # appSecret = '6732ac43a7f5ddf07135ffb579008b9947cc8a5c'  # test
+    # appSecret = '10eefa12f4a3a4a4dccb345677925a0dee5b967e' # prod
     xUserToken = str(base64.b64encode(bytes(userInfo, 'utf-8')), 'utf-8') + \
         '.' + sha1(bytes(userInfo + '.' + appSecret, 'utf-8')).hexdigest()
     return xUserToken
+
+def get_check_digit(id_number):
+    """通过身份证号获取校验码"""
+    check_sum = 0
+    for i in range(0, 17):
+        check_sum += ((1 << (17 - i)) % 11) * int(id_number[i])
+    check_digit = (12 - (check_sum % 11)) % 11
+    return str(check_digit) if check_digit < 10 else 'X'
+
+def generate_id():
+    """ 随机生成身份证号，sex = 0表示女性，sex = 1表示男性 """
+
+    # 随机生成一个区域码(6位数)
+    id_number = str(random.choice(list(const.AREA_INFO.keys())))
+    # 限定出生日期范围(8位数)
+    start, end = datetime.strptime("1960-01-01", "%Y-%m-%d"), datetime.strptime("2020-12-31", "%Y-%m-%d")
+    birth_days = datetime.strftime(start + timedelta(random.randint(0, (end - start).days)), "%Y%m%d")
+    id_number += str(birth_days)
+    # 顺序码(2位数)
+    id_number += '{:02}'.format(random.randint(1, 99))
+    # 性别码(1位数)
+    # id_number += str(random.randrange(sex, 10, step=2))
+    id_number += str(random.randint(0, 9))
+    # 校验码(1位数)
+    return id_number + get_check_digit(id_number)
+
+def parse_url(url:str):
+    r = urlparse(url)
+    return f'{r.scheme}://{r.netloc}{r.path}'
+
+def get_internal_ip(url:str):
+    if url == config.XPC_API_BASE_URL:
+        return config.INTERNAL_IP_XPC_API
+    return config.INTERNAL_IP_XPC_API
